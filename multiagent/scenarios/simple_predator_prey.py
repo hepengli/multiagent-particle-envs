@@ -196,11 +196,11 @@ class Scenario(BaseScenario):
         if agent.collide:
             for ag in agents:
                 if self.is_collision(ag, agent):
-                    rew += 5
+                    rew += 2
         if agent.leader:
             for adv in adversaries:
                 if self.is_collision(adv, agents[0]): # good agents' leader
-                    rew += 5
+                    rew += 3
 
         return rew
 
