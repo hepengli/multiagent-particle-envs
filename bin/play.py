@@ -5,9 +5,9 @@ import gym
 from multiagent.matrpo import MATRPO
 
 def main():
-    env_id = 'simple_world_comm'
-    model = 'matrpo'
-    seed = 2
+    env_id = 'simple_predator_prey'
+    model = 'matrpo_vs_independent'
+    seed = 1
     network_kwargs = {'num_layers': 2, 'num_hidden': 128, 'activation': 'selu'}
     load_path = '/home/lihepeng/Documents/Github/multiagent-particle-envs/results/graphs/{}/{}/s{}'.format(env_id, model, seed)
     agents = MATRPO(
@@ -20,8 +20,8 @@ def main():
         load_path=load_path,
         seed=seed,
         info_keywords=tuple('r{}'.format(i) for i in range(7)),
-        adv='independent',
-        agt='cooperative',
+        adv='cooperative',
+        agt='independent',
         **network_kwargs)
 
     agents.play()
