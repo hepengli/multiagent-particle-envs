@@ -18,7 +18,7 @@ def main():
         nsteps=200,
         network='mlp',
         num_env=10,
-        admm_iter=[80,0],
+        admm_iter=[0,0],
         ob_clip_range=5.0,
         load_path=load_path,
         logger_dir=reward_path,
@@ -36,7 +36,7 @@ def main():
         agents.model.train(actions, obs, returns, dones, values, advs, neglogpacs)
 
         df_train = load_results(reward_path)
-        plot(df_train, agents)
+        plot(df_train, agents, 20)
         if step % 10 == 0:
             agents.model.save()
 
