@@ -11,8 +11,8 @@ def main():
     model = 'matrpo_vs_independent'
     seed = 1
     network_kwargs = {'num_layers': 2, 'num_hidden': 128, 'activation': 'selu'}
-    reward_path = '/home/lihepeng/Documents/Github/multiagent_results/training/{}/{}/s{}'.format(env_id, model, seed)
-    load_path = '/home/lihepeng/Documents/Github/multiagent_results/graphs/{}/{}/s{}'.format(env_id, model, seed)
+    reward_path = '/home/lihepeng/Documents/Github/results/training/{}/{}/s{}'.format(env_id, model, seed)
+    load_path = '/home/lihepeng/Documents/Github/results/graphs/{}/{}/s{}'.format(env_id, model, seed)
     agents = MATRPO(
         env_id=env_id,
         nsteps=200,
