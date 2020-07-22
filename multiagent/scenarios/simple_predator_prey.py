@@ -180,7 +180,7 @@ class Scenario(BaseScenario):
         for food in world.food:
             for ag in agents:
                 if self.is_collision(food, ag):
-                    rew += 3
+                    rew += 2.5
         rew -= 0.05 * min([np.sqrt(np.sum(np.square(food.state.p_pos - agent.state.p_pos))) for food in world.food])
 
         return rew
@@ -196,11 +196,12 @@ class Scenario(BaseScenario):
         if agent.collide:
             for ag in agents:
                 if self.is_collision(ag, agent):
-                    rew += 2
-        if agent.leader:
+                    rew += 2.5
+
             for adv in adversaries:
+                if adv == agent: continue
                 if self.is_collision(adv, agents[0]): # good agents' leader
-                    rew += 3
+                    rew += 2.5
 
         return rew
 
