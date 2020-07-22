@@ -6,8 +6,8 @@ from multiagent.matrpo import MATRPO
 
 def main():
     env_id = 'simple_predator_prey'
-    model = 'matrpo_vs_independent'
-    seed = 1
+    model = 'independent_vs_independent'
+    seed = 5
     network_kwargs = {'num_layers': 2, 'num_hidden': 128, 'activation': 'selu'}
     load_path = '/home/lihepeng/Documents/Github/multiagent-particle-envs/results/graphs/{}/{}/s{}'.format(env_id, model, seed)
     agents = MATRPO(
@@ -15,12 +15,12 @@ def main():
         nsteps=2000,
         network='mlp',
         num_env=10,
-        admm_iter=[0,80],
+        admm_iter=[0,0],
         ob_clip_range=5.0,
         load_path=load_path,
         seed=seed,
         info_keywords=tuple('r{}'.format(i) for i in range(7)),
-        adv='cooperative',
+        adv='independent',
         agt='independent',
         **network_kwargs)
 
