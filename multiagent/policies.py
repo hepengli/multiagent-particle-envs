@@ -5,7 +5,7 @@ from baselines.common.mpi_running_mean_std import RunningMeanStd
 import gym
 
 
-class PolicyWithValue(tf.Module):
+class PolicyWithValue(tf.keras.Model):
     """
     Encapsulates fields and methods for RL policy and value function estimation with shared parameters
     """
@@ -23,6 +23,7 @@ class PolicyWithValue(tf.Module):
         estimate_q      q value or v value
 
         """
+        super(PolicyWithValue, self).__init__()
 
         self.policy_network = policy_network
         self.value_network = value_network or policy_network

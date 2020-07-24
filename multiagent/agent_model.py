@@ -72,13 +72,14 @@ class AgentModel(tf.Module):
 
         if load_path is not None:
             load_path = os.path.expanduser(load_path)
-            self.ckpt = ckpt = tf.train.Checkpoint(model=pi)
-            load_path = load_path + '/agent{}'.format(self.agent.id)
-            if not os.path.exists(load_path):
-                os.makedirs(load_path)
-            self.manager = manager = tf.train.CheckpointManager(ckpt, load_path, max_to_keep=3)
-            self.ckpt.restore(manager.latest_checkpoint)
-            print(colorize('Agent{}\'s Model restored!'.format(self.agent.id), color='magenta'))
+            self.ckpt = tf.train.Checkpoint(model=pi)
+            load_path = os.path.join(load_path, 'agent{}'.format(self.agent.id))
+            self.manager = tf.train.CheckpointManager(self.ckpt, load_path, max_to_keep=3)
+            self.ckpt.restore(self.manager.latest_checkpoint)
+            if self.manager.latest_checkpoint:
+                print("Restored from {}".format(self.manager.latest_checkpoint))
+            else:
+                print("Initializing from scratch.")
 
         self.vfadam = MpiAdam(vf_var_list)
         self.vfadam.sync()

@@ -8,14 +8,16 @@ from multiagent.plot import plot
 
 def main():
     env_id = 'simple_predator_prey'
-    model = 'independent_vs_independent'
+    adv = 'independent'
+    agt = 'independent'
+    model = adv+'_vs_'+agt
     seed = 5
     network_kwargs = {'num_layers': 2, 'num_hidden': 128, 'activation': 'selu'}
     reward_path = '/home/lihepeng/Documents/Github/results/training/{}/{}/s{}'.format(env_id, model, seed)
     load_path = '/home/lihepeng/Documents/Github/results/graphs/{}/{}/s{}'.format(env_id, model, seed)
     agents = MATRPO(
         env_id=env_id,
-        nsteps=1000,
+        nsteps=2000,
         network='mlp',
         num_env=15,
         admm_iter=[0,0],
@@ -24,9 +26,10 @@ def main():
         logger_dir=reward_path,
         seed=seed,
         finite=False,
+        gamma=0.95,
         info_keywords=tuple('r{}'.format(i) for i in range(7)),
-        adv='independent',
-        agt='independent',
+        adv=adv,
+        agt=agt,
         **network_kwargs)
 
     # training
@@ -36,8 +39,8 @@ def main():
         agents.model.train(actions, obs, returns, dones, values, advs, neglogpacs)
 
         df_train = load_results(reward_path)
-        plot(df_train, agents, 150)
-        if step % 100 == 0:
+        plot(df_train, agents, 30)
+        if step % 5 == 0:
             agents.model.save()
 
 if __name__ == "__main__":
