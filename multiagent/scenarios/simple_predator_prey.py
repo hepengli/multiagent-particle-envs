@@ -18,7 +18,7 @@ class Scenario(BaseScenario):
         world.comm_matrix = np.array([
             [1.,-1., 0., 0., 0., 0., 0.],
             [0., 1.,-1., 0., 0., 0., 0.],
-            [1., 0., 0.,-1., 0., 0., 0.],
+            [0., 0., 1.,-1., 0., 0., 0.],
             [0., 0., 0., 0., 1.,-1., 0.],
             [0., 0., 0., 0., 1., 0.,-1.],
         ], dtype=np.float32)
@@ -172,10 +172,23 @@ class Scenario(BaseScenario):
         shape = False
         agents = self.good_agents(world)
         adversaries = self.adversaries(world)
-
-        for adv in adversaries:
-            if self.is_collision(adv, agent):
-                rew -= 5
+        if shape:
+            for adv in adversaries:
+                rew += 0.1 * np.sqrt(np.sum(np.square(agent.state.p_pos - adv.state.p_pos)))
+        if agent.collide:
+            for a in adversaries:
+                if self.is_collision(a, agent):
+                    rew -= 5
+        # def bound(x):
+        #     if x < 0.9:
+        #         return 0
+        #     if x < 1.0:
+        #         return (x - 0.9) * 10
+        #     return min(np.exp(2 * x - 2), 10)  # 1 + (x - 1) * (x - 1)
+        
+        # for p in range(world.dim_p):
+        #     x = abs(agent.state.p_pos[p])
+        #     rew -= 2 * bound(x)
 
         for food in world.food:
             for ag in agents:
@@ -196,11 +209,15 @@ class Scenario(BaseScenario):
         if agent.collide:
             for ag in agents:
                 if self.is_collision(ag, agent):
-                    rew += 5
-        if agent.leader:
-            for adv in adversaries:
-                if self.is_collision(adv, agents[0]): # good agents' leader
-                    rew += 5
+                    rew +=5
+
+        # if agent.collide and agent.leader:
+        #     for adv in adversaries:
+        #         if shape:
+        #             rew -= 0.1 * min([np.sqrt(np.sum(np.square(a.state.p_pos - adv.state.p_pos))) for a in agents])
+        #         for ag in agents:
+        #             if self.is_collision(adv, ag): # good agents' leader
+        #                 rew += 2 if not ag.leader else 10
 
         return rew
 
@@ -283,10 +300,7 @@ class Scenario(BaseScenario):
             else:
                 prey_forest_lead.append(np.array([-1]))
 
-        if agent.adversary and not agent.leader:
-            return np.concatenate(
-                [agent.state.p_vel] + [agent.state.p_pos] + entity_pos + other_pos + other_vel + in_forest).astype(np.float32)
-        if agent.leader:
+        if agent.adversary:
             return np.concatenate(
                 [agent.state.p_vel] + [agent.state.p_pos] + entity_pos + other_pos + other_vel + in_forest).astype(np.float32)
         else:

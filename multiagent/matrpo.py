@@ -89,12 +89,14 @@ class MATRPO(object):
         Create a wrapped, monitored gym.Env for safety.
         """
         scenario = scenarios.load('{}.py'.format(env_id)).Scenario()
+        if not hasattr(scenario, 'post_step'): scenario.post_step = None
         world = scenario.make_world()
         env_dict = {
             "world": world,
             'reset_callback': scenario.reset_world,
             'reward_callback': scenario.reward, 
             'observation_callback': scenario.observation,
+            'post_step_callback': scenario.post_step,
             'info_callback': None,
             'shared_viewer':  True
             }
