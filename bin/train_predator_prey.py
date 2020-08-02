@@ -7,7 +7,7 @@ from multiagent.matrpo import MATRPO
 from multiagent.plot import plot
 
 def main():
-    seed = 1
+    seed = 3
     env_id = 'simple_predator_prey'
     model = 'centralized_vs_independent'
     network_kwargs = {'num_layers': 2, 'num_hidden': 128, 'activation': 'tanh'}
@@ -22,6 +22,7 @@ def main():
         load_path=load_path,
         logger_dir=reward_path,
         seed=seed,
+        gamma=0.95,
         info_keywords=tuple('r{}'.format(i) for i in range(7)),
         adv='centralized',
         agt='independent',
