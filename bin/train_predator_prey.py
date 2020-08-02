@@ -7,27 +7,25 @@ from multiagent.matrpo import MATRPO
 from multiagent.plot import plot
 
 def main():
-    seed = 3
+    seed = 1
     env_id = 'simple_predator_prey'
-    model = 'matrpo_vs_independent'
+    model = 'centralized_vs_independent'
     network_kwargs = {'num_layers': 2, 'num_hidden': 128, 'activation': 'tanh'}
-    # reward_path = '/home/lihepeng/Documents/Github/results/training/{}/{}/s{}'.format(env_id, model, seed)
-    # load_path = '/home/lihepeng/Documents/Github/results/graphs/{}/{}/s{}'.format(env_id, model, seed)
-    reward_path = './results'
+    reward_path = '/home/lihepeng/Documents/Github/results/training/{}/{}/s{}'.format(env_id, model, seed)
+    load_path = '/home/lihepeng/Documents/Github/results/graphs/{}/{}/s{}'.format(env_id, model, seed)
     agents = MATRPO(
         env_id=env_id,
         nsteps=1000,
         network='mlp',
         num_env=15,
-        admm_iter=[30,0],
-        ob_clip_range=5.0,
-        # load_path=load_path,
+        admm_iter=[0,0],
+        load_path=load_path,
         logger_dir=reward_path,
         seed=seed,
         finite=True,
         gamma=0.95,
         info_keywords=tuple('r{}'.format(i) for i in range(7)),
-        adv='independent',
+        adv='centralized',
         agt='independent',
         **network_kwargs)
 
@@ -40,8 +38,7 @@ def main():
         df_train = load_results(reward_path)
         plot(df_train, agents, 150)
         if step % 20 == 0:
-            # agents.model.save()
-            agents.play()
+            agents.model.save()
 
 if __name__ == "__main__":
     main()

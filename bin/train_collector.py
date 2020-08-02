@@ -8,29 +8,30 @@ from multiagent.plot import plot
 
 def main():
     env_id = 'collector'
-    model = 'independent'
-    seed = 1
+    model = 'matrpo'
+    seed = 2
     reward_path = '/home/lihepeng/Documents/Github/results/training/{}/{}/s{}'.format(env_id, model, seed)
     load_path = '/home/lihepeng/Documents/Github/results/graphs/{}/{}/s{}'.format(env_id, model, seed)
-    network_kwargs = {'num_layers': 2, 'num_hidden': 256, 'activation': 'tanh'}
+    network_kwargs = {'num_layers': 3, 'num_hidden': 128}
     agents = MATRPO(
         env_id=env_id,
         nsteps=1000,
         network='mlp',
         num_env=15,
-        admm_iter=0,
-        ob_clip_range=5.0,
+        admm_iter=200,
+        # ob_clip_range=5.0,
+        max_kl=0.01,
         load_path=load_path,
         logger_dir=reward_path,
         seed=seed,
         finite=True,
         gamma=0.95,
         info_keywords=tuple('r{}'.format(i) for i in range(8)),
-        adv='independent',
+        adv='cooperative',
         **network_kwargs)
 
     # training
-    total_timesteps = 500
+    total_timesteps = 1000
     for step in range(1, total_timesteps+1):
         actions, obs, returns, dones, values, advs, neglogpacs = agents.runner.run()
         agents.model.train(actions, obs, returns, dones, values, advs, neglogpacs)

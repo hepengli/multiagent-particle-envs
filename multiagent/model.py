@@ -116,8 +116,8 @@ class Model(object):
         if self.adv == 'cooperative':
             argvs = []
             for i in range(self.world.n_adv):
-                self.policies[i].pi.ob_rms.update(obs[i])
-                self.policies[i].oldpi.ob_rms.update(obs[i])
+                # self.policies[i].pi.ob_rms.update(obs[i])
+                # self.policies[i].oldpi.ob_rms.update(obs[i])
                 atarg[i] = (atarg[i] - np.mean(atarg[:self.world.n_adv])) / np.std(atarg[:self.world.n_adv])
                 self.policies[i].reinitial_estimates()
                 self.policies[i].assign_old_eq_new()
@@ -137,16 +137,16 @@ class Model(object):
                 self.policies[k].exchange(obs[k], actions[k], edge[k], ratio_j, multipliers_j, j)
                 self.policies[j].exchange(obs[j], actions[j], edge[j], ratio_k, multipliers_k, k)
         elif self.adv == 'centralized':
-            self.policies[0].pi.ob_rms.update(obs[0])
-            self.policies[0].oldpi.ob_rms.update(obs[0])
+            # self.policies[0].pi.ob_rms.update(obs[0])
+            # self.policies[0].oldpi.ob_rms.update(obs[0])
             atarg[0] = (atarg[0] - np.mean(atarg[0])) / np.std(atarg[0])
             self.policies[0].assign_old_eq_new()
             self.policies[0].vfupdate(obs[0], returns[0], values[0])
             self.policies[0].trpo_update(obs[0], actions[0], atarg[0], returns[0], values[0])
         else:
             for i in range(self.world.n_adv):
-                self.policies[i].pi.ob_rms.update(obs[i])
-                self.policies[i].oldpi.ob_rms.update(obs[i])
+                # self.policies[i].pi.ob_rms.update(obs[i])
+                # self.policies[i].oldpi.ob_rms.update(obs[i])
                 atarg[i] = (atarg[i] - np.mean(atarg[i])) / np.std(atarg[i])
                 self.policies[i].assign_old_eq_new()
                 self.policies[i].vfupdate(obs[i], returns[i], values[i])
@@ -156,8 +156,8 @@ class Model(object):
             if self.agt == 'cooperative':
                 argvs = []
                 for i in range(self.world.n_adv, self.world.n):
-                    self.policies[i].pi.ob_rms.update(obs[i])
-                    self.policies[i].oldpi.ob_rms.update(obs[i])
+                    # self.policies[i].pi.ob_rms.update(obs[i])
+                    # self.policies[i].oldpi.ob_rms.update(obs[i])
                     atarg[i] = (atarg[i] - np.mean(atarg[self.world.n_adv:])) / np.std(atarg[self.world.n_adv:])
                     self.policies[i].reinitial_estimates()
                     self.policies[i].assign_old_eq_new()
@@ -178,16 +178,16 @@ class Model(object):
                     self.policies[k].exchange(obs[k], actions[k], edge[k], ratio_j, multipliers_j, nj)
                     self.policies[j].exchange(obs[j], actions[j], edge[j], ratio_k, multipliers_k, nk)
             elif self.agt == 'centralized':
-                self.policies[self.world.n_adv].pi.ob_rms.update(obs[self.world.n_adv])
-                self.policies[self.world.n_adv].oldpi.ob_rms.update(obs[self.world.n_adv])
+                # self.policies[self.world.n_adv].pi.ob_rms.update(obs[self.world.n_adv])
+                # self.policies[self.world.n_adv].oldpi.ob_rms.update(obs[self.world.n_adv])
                 atarg[self.world.n_adv] = (atarg[self.world.n_adv] - np.mean(atarg[self.world.n_adv])) / np.std(atarg[self.world.n_adv])
                 self.policies[self.world.n_adv].assign_old_eq_new()
                 self.policies[self.world.n_adv].vfupdate(obs[self.world.n_adv], returns[self.world.n_adv], values[self.world.n_adv])
                 self.policies[self.world.n_adv].trpo_update(obs[self.world.n_adv], actions[self.world.n_adv], atarg[self.world.n_adv], returns[self.world.n_adv], values[self.world.n_adv])
             else:
                 for i in range(self.world.n_adv, self.world.n):
-                    self.policies[i].pi.ob_rms.update(obs[i])
-                    self.policies[i].oldpi.ob_rms.update(obs[i])
+                    # self.policies[i].pi.ob_rms.update(obs[i])
+                    # self.policies[i].oldpi.ob_rms.update(obs[i])
                     atarg[i] = (atarg[i] - np.mean(atarg[i])) / np.std(atarg[i])
                     self.policies[i].assign_old_eq_new()
                     self.policies[i].vfupdate(obs[i], returns[i], values[i])

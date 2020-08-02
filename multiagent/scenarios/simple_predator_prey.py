@@ -206,18 +206,22 @@ class Scenario(BaseScenario):
         adversaries = self.adversaries(world)
         if shape:
             rew -= 0.1 * min([np.sqrt(np.sum(np.square(a.state.p_pos - agent.state.p_pos))) for a in agents])
-        if agent.collide:
-            for ag in agents:
-                if self.is_collision(ag, agent):
-                    rew +=5
-
-        # if agent.collide and agent.leader:
+        # if agent.collide:
+        #     for ag in agents:
+        #         if self.is_collision(ag, agent):
+        #             rew += 5
+        # if agent.leader:
         #     for adv in adversaries:
-        #         if shape:
-        #             rew -= 0.1 * min([np.sqrt(np.sum(np.square(a.state.p_pos - adv.state.p_pos))) for a in agents])
-        #         for ag in agents:
-        #             if self.is_collision(adv, ag): # good agents' leader
-        #                 rew += 2 if not ag.leader else 10
+        #         if self.is_collision(adv, agents[0]):
+        #             rew += 5
+
+        if agent.collide and agent.leader:
+            for adv in adversaries:
+                if shape:
+                    rew -= 0.1 * min([np.sqrt(np.sum(np.square(a.state.p_pos - adv.state.p_pos))) for a in agents])
+                for ag in agents:
+                    if self.is_collision(adv, ag): # good agents' leader
+                        rew += 5 if not ag.leader else 10
 
         return rew
 
