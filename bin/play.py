@@ -5,7 +5,7 @@ import gym
 from multiagent.matrpo import MATRPO
 
 def main():
-    seed = 1
+    seed = 3
     env_id = 'simple_predator_prey'
     model = 'centralized_vs_independent'
     network_kwargs = {'num_layers': 2, 'num_hidden': 128, 'activation': 'tanh'}
