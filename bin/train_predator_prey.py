@@ -22,8 +22,6 @@ def main():
         load_path=load_path,
         logger_dir=reward_path,
         seed=seed,
-        finite=True,
-        gamma=0.95,
         info_keywords=tuple('r{}'.format(i) for i in range(7)),
         adv='centralized',
         agt='independent',

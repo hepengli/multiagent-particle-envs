@@ -204,8 +204,8 @@ class Scenario(BaseScenario):
         shape = True
         agents = self.good_agents(world)
         adversaries = self.adversaries(world)
-        if shape:
-            rew -= 0.1 * min([np.sqrt(np.sum(np.square(a.state.p_pos - agent.state.p_pos))) for a in agents])
+        # if shape:
+        #     rew -= 0.1 * min([np.sqrt(np.sum(np.square(a.state.p_pos - agent.state.p_pos))) for a in agents])
         # if agent.collide:
         #     for ag in agents:
         #         if self.is_collision(ag, agent):
