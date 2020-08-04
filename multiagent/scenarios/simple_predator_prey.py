@@ -179,22 +179,26 @@ class Scenario(BaseScenario):
             for a in adversaries:
                 if self.is_collision(a, agent):
                     rew -= 5
-        # def bound(x):
-        #     if x < 0.9:
-        #         return 0
-        #     if x < 1.0:
-        #         return (x - 0.9) * 10
-        #     return min(np.exp(2 * x - 2), 10)  # 1 + (x - 1) * (x - 1)
-        
-        # for p in range(world.dim_p):
-        #     x = abs(agent.state.p_pos[p])
-        #     rew -= 2 * bound(x)
-
         for food in world.food:
             for ag in agents:
                 if self.is_collision(food, ag):
                     rew += 2
         rew -= 0.05 * min([np.sqrt(np.sum(np.square(food.state.p_pos - agent.state.p_pos))) for food in world.food])
+
+
+        # if agent.leader:
+        #     for ag in agents:
+        #         if shape:
+        #             for adv in adversaries:
+        #                 rew += 0.1 * np.sqrt(np.sum(np.square(ag.state.p_pos - adv.state.p_pos)))
+        #         if agent.collide:
+        #             for a in adversaries:
+        #                 if self.is_collision(a, ag):
+        #                     rew -= 5
+        #         for food in world.food:
+        #             if self.is_collision(food, ag):
+        #                 rew += 2 * len(agents)
+        #         rew -= 0.05 * min([np.sqrt(np.sum(np.square(food.state.p_pos - ag.state.p_pos))) for food in world.food])
 
         return rew
 
