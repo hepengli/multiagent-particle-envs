@@ -8,7 +8,7 @@ from multiagent.plot import plot
 
 seed = 3
 env_id = 'simple_predator_prey'
-model = 'centralized_vs_independent'
+model = 'independent_vs_centralized'
 network_kwargs = {'num_layers': 2, 'num_hidden': 128, 'activation': 'selu'}
 reward_path = '/home/lihepeng/Documents/Github/results/training/{}/{}/s{}'.format(env_id, model, seed)
 load_path = '/home/lihepeng/Documents/Github/results/graphs/{}/{}/s{}'.format(env_id, model, seed)
@@ -22,8 +22,8 @@ agents = MATRPO(
     logger_dir=reward_path,
     seed=seed,
     info_keywords=tuple('r{}'.format(i) for i in range(7)),
-    adv='centralized',
-    agt='independent',
+    adv='independent',
+    agt='centralized',
     **network_kwargs)
 
 # training
