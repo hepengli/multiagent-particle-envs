@@ -9,7 +9,7 @@ from multiagent.plot import plot
 seed = 3
 env_id = 'simple_predator_prey'
 model = 'independent_vs_centralized'
-network_kwargs = {'num_layers': 2, 'num_hidden': 128, 'activation': 'selu'}
+network_kwargs = {'num_layers': 2, 'num_hidden': 128, 'activation': 'tanh'}
 reward_path = '/home/lihepeng/Documents/Github/results/training/{}/{}/s{}'.format(env_id, model, seed)
 load_path = '/home/lihepeng/Documents/Github/results/graphs/{}/{}/s{}'.format(env_id, model, seed)
 agents = MATRPO(
