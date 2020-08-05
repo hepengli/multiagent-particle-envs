@@ -44,9 +44,9 @@ class ClipActionsWrapper(gym.Wrapper):
 class MATRPO(object):
     """ Paralell CPO algorithm """
     def __init__(self, env_id, nsteps, network, admm_iter, gamma=0.995, lam=0.95, max_kl=0.01, ent_coef=0.0, 
-                 vf_stepsize=3e-4, vf_iters=3, cg_damping=1e-2, cg_iters=10, lbfgs_iters=10, ob_clip_range=np.inf, 
-                 rho=1.0, num_env=1, reward_scale=1.0, finite=True, seed=None, load_path=None, logger_dir=None, force_dummy=False, 
-                 info_keywords=(), adv='cooperative', agt='cooperative', 
+                 vf_stepsize=3e-4, vf_iters=3, cg_damping=1e-2, cg_iters=10, lbfgs_iters=10, rho=1.0, num_env=1, 
+                 reward_scale=1.0, finite=True, seed=None, load_path=None, logger_dir=None, force_dummy=False, 
+                 ob_normalization=False, ob_clip_range=np.inf, info_keywords=(), adv='cooperative', agt='cooperative', 
                  **network_kwargs):
         # Setup stuff
         set_global_seeds(seed)
@@ -79,7 +79,7 @@ class MATRPO(object):
                                ob_clip_range=ob_clip_range, load_path=load_path, adv=adv, agt=agt, **network_kwargs)
 
         # model
-        self.model = model = Model(env=env, world=world, policies=self.policies, admm_iter=admm_iter, adv=adv, agt=agt)
+        self.model = model = Model(env=env, world=world, policies=self.policies, admm_iter=admm_iter, adv=adv, agt=agt, ob_normalization=ob_normalization)
 
         # runner
         if num_env > 1: self.runner = Runner(env=env, world=world, model=model, nsteps=nsteps, gamma=gamma, lam=lam, finite=finite)
