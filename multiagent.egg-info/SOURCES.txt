@@ -4,6 +4,7 @@ bin/__init__.py
 bin/interactive.py
 bin/learning_curves.py
 bin/play.py
+bin/train_collector.py
 bin/train_predator_prey.py
 bin/train_spread.py
 multiagent/__init__.py
@@ -15,6 +16,7 @@ multiagent/lbfgs.py
 multiagent/matrpo.py
 multiagent/model.py
 multiagent/multi_discrete.py
+multiagent/new_core.py
 multiagent/plot.py
 multiagent/policies.py
 multiagent/policy.py
@@ -28,6 +30,7 @@ multiagent.egg-info/not-zip-safe
 multiagent.egg-info/requires.txt
 multiagent.egg-info/top_level.txt
 multiagent/scenarios/__init__.py
+multiagent/scenarios/collector.py
 multiagent/scenarios/simple.py
 multiagent/scenarios/simple_adversary.py
 multiagent/scenarios/simple_crypto.py
