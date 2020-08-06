@@ -1,5 +1,5 @@
 import numpy as np
-from multiagent.core import World, Agent, Landmark
+from multiagent.core import World, Agent, Landmark, Wall
 from multiagent.scenario import BaseScenario
 
 
@@ -15,6 +15,7 @@ class Scenario(BaseScenario):
         num_landmarks = 1
         num_food = 2
         num_forests = 2
+        num_walls = 4
 
         # add comm network
         world.comm_matrix = np.array([
@@ -58,41 +59,19 @@ class Scenario(BaseScenario):
             landmark.movable = False
             landmark.size = 0.25
             landmark.boundary = False
+        world.walls = [Wall() for i in range(num_walls)]
+        for i, landmark in enumerate(world.walls):
+            landmark.name = 'wall %d' % i
+            landmark.orient = 'H' if i % 2 == 0 else 'V'
+            landmark.axis_pos = - 1.2 if i < 2 else 1.2
+            landmark.width = 0.4
+            landmark.endpoints = (-1.2, 1.2)
         world.landmarks += world.barrier
         world.landmarks += world.food
         world.landmarks += world.forests
-        world.landmarks += self.set_boundaries(world)
         # make initial conditions
         self.reset_world(world, np.random)
         return world
-
-    def set_boundaries(self, world):
-        boundary_list = []
-        landmark_size = 1
-        edge = 1 + landmark_size
-        num_landmarks = int(edge * 2 / landmark_size)
-        for x_pos in [-edge, edge]:
-            for i in range(num_landmarks):
-                l = Landmark()
-                l.state.p_pos = np.array([x_pos, -1 + i * landmark_size])
-                boundary_list.append(l)
-
-        for y_pos in [-edge, edge]:
-            for i in range(num_landmarks):
-                l = Landmark()
-                l.state.p_pos = np.array([-1 + i * landmark_size, y_pos])
-                boundary_list.append(l)
-
-        for i, l in enumerate(boundary_list):
-            l.name = 'boundary %d' % i
-            l.collide = True
-            l.movable = False
-            l.boundary = True
-            l.color = np.array([0.75, 0.75, 0.75])
-            l.size = landmark_size
-            l.state.p_vel = np.zeros(world.dim_p)
-
-        return boundary_list
 
     def reset_world(self, world, np_random):
         # random properties for agents
