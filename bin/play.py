@@ -7,8 +7,8 @@ from multiagent.matrpo import MATRPO
 def main():
     seed = 3
     env_id = 'simple_predator_prey'
-    model = 'independent_vs_centralized'
-    network_kwargs = {'num_layers': 2, 'num_hidden': 128, 'activation': 'tanh'}
+    model = 'independent_vs_independent'
+    network_kwargs = {'num_layers': 2, 'num_hidden': 128, 'activation': 'selu'}
     load_path = '/home/lihepeng/Documents/Github/results/graphs/{}/{}/s{}'.format(env_id, model, seed)
     agents = MATRPO(
         env_id=env_id,
@@ -19,7 +19,7 @@ def main():
         load_path=load_path,
         info_keywords=tuple('r{}'.format(i) for i in range(7)),
         adv='independent',
-        agt='centralized',
+        agt='independent',
         **network_kwargs)
 
     agents.play()

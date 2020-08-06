@@ -23,6 +23,22 @@ class Action(object):
         # communication action
         self.c = None
 
+class Wall(object):
+    def __init__(self, orient='H', axis_pos=0.0, endpoints=(-1, 1), width=0.1,
+                 hard=True):
+        # orientation: 'H'orizontal or 'V'ertical
+        self.orient = orient
+        # position along axis which wall lays on (y-axis for H, x-axis for V)
+        self.axis_pos = axis_pos
+        # endpoints of wall (x-coords for H, y-coords for V)
+        self.endpoints = np.array(endpoints)
+        # width of wall
+        self.width = width
+        # whether wall is impassable to all agents
+        self.hard = hard
+        # color of wall
+        self.color = np.array([0.0, 0.0, 0.0], dtype=np.float32)
+
 # properties and state of physical world entity
 class Entity(object):
     def __init__(self):
@@ -65,6 +81,8 @@ class Agent(Entity):
         self.silent = False
         # cannot observe the world
         self.blind = False
+        # cannot pass through walls
+        self.ghost = False
         # physical motor noise amount
         self.u_noise = None
         # communication noise amount
@@ -84,6 +102,7 @@ class World(object):
         # list of agents and entities (can change at execution-time!)
         self.agents = []
         self.landmarks = []
+        self.walls = []
         # communication channel dimensionality
         self.dim_c = 0
         # position dimensionality
@@ -151,7 +170,14 @@ class World(object):
                     p_force[a] = f_a + p_force[a] 
                 if(f_b is not None):
                     if(p_force[b] is None): p_force[b] = 0.0
-                    p_force[b] = f_b + p_force[b]        
+                    p_force[b] = f_b + p_force[b]
+            if entity_a.movable:
+                for wall in self.walls:
+                    wf = self.get_wall_collision_force(entity_a, wall)
+                    if wf is not None:
+                        if p_force[a] is None:
+                            p_force[a] = 0.0
+                        p_force[a] = p_force[a] + wf
         return p_force
 
     # integrate physical state
@@ -180,6 +206,8 @@ class World(object):
     def get_collision_force(self, entity_a, entity_b):
         if (not entity_a.collide) or (not entity_b.collide):
             return [None, None] # not a collider
+        if (not entity_a.movable) and (not entity_b.movable):
+            return [None, None] # neither entity moves
         if (entity_a is entity_b):
             return [None, None] # don't collide against itself
         # compute actual distance between entities
@@ -194,3 +222,43 @@ class World(object):
         force_a = +force if entity_a.movable else None
         force_b = -force if entity_b.movable else None
         return [force_a, force_b]
+
+    # get collision forces for contact between an entity and a wall
+    def get_wall_collision_force(self, entity, wall):
+        if entity.ghost and not wall.hard:
+            return None  # ghost passes through soft walls
+        if wall.orient == 'H':
+            prll_dim = 0
+            perp_dim = 1
+        else:
+            prll_dim = 1
+            perp_dim = 0
+        ent_pos = entity.state.p_pos
+        if (ent_pos[prll_dim] < wall.endpoints[0] - entity.size or
+            ent_pos[prll_dim] > wall.endpoints[1] + entity.size):
+            return None  # entity is beyond endpoints of wall
+        elif (ent_pos[prll_dim] < wall.endpoints[0] or
+              ent_pos[prll_dim] > wall.endpoints[1]):
+            # part of entity is beyond wall
+            if ent_pos[prll_dim] < wall.endpoints[0]:
+                dist_past_end = ent_pos[prll_dim] - wall.endpoints[0]
+            else:
+                dist_past_end = ent_pos[prll_dim] - wall.endpoints[1]
+            theta = np.arcsin(dist_past_end / entity.size)
+            dist_min = np.cos(theta) * entity.size + 0.5 * wall.width
+        else:  # entire entity lies within bounds of wall
+            theta = 0
+            dist_past_end = 0
+            dist_min = entity.size + 0.5 * wall.width
+
+        # only need to calculate distance in relevant dim
+        delta_pos = ent_pos[perp_dim] - wall.axis_pos
+        dist = np.abs(delta_pos)
+        # softmax penetration
+        k = self.contact_margin
+        penetration = np.logaddexp(0, -(dist - dist_min)/k)*k
+        force_mag = self.contact_force * delta_pos / dist * penetration
+        force = np.zeros(2)
+        force[perp_dim] = np.cos(theta) * force_mag
+        force[prll_dim] = np.sin(theta) * np.abs(force_mag)
+        return force
