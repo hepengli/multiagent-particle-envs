@@ -11,6 +11,12 @@ class Scenario(BaseScenario):
         num_agents = 3
         num_landmarks = 3
         world.collaborative = True
+        # add comm network
+        world.comm_matrix = np.array([
+            [1.,-1., 0.],
+            [0., 1.,-1.],
+            [0., 0., 1.],
+        ], dtype=np.float32)
         # add agents
         world.agents = [Agent() for i in range(num_agents)]
         for i, agent in enumerate(world.agents):
@@ -25,10 +31,10 @@ class Scenario(BaseScenario):
             landmark.collide = False
             landmark.movable = False
         # make initial conditions
-        self.reset_world(world)
+        self.reset_world(world, np.random)
         return world
 
-    def reset_world(self, world):
+    def reset_world(self, world, np_random):
         # random properties for agents
         for i, agent in enumerate(world.agents):
             agent.color = np.array([0.35, 0.35, 0.85])
@@ -97,4 +103,6 @@ class Scenario(BaseScenario):
             if other is agent: continue
             comm.append(other.state.c)
             other_pos.append(other.state.p_pos - agent.state.p_pos)
-        return np.concatenate([agent.state.p_vel] + [agent.state.p_pos] + entity_pos + other_pos + comm)
+        ob = np.concatenate([agent.state.p_vel] + [agent.state.p_pos] + entity_pos + other_pos)
+
+        return ob.astype(np.float32)

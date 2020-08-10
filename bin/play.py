@@ -8,7 +8,7 @@ def main():
     seed = 3
     env_id = 'simple_predator_prey'
     model = 'independent_vs_matrpo'
-    network_kwargs = {'num_layers': 2, 'num_hidden': 128, 'activation': 'selu'}
+    network_kwargs = {'num_layers': 2, 'num_hidden': 128, 'activation': 'tanh'}
     load_path = '/home/lihepeng/Documents/Github/results/graphs/{}/{}/s{}'.format(env_id, model, seed)
     agents = MATRPO(
         env_id=env_id,

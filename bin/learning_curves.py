@@ -21,7 +21,7 @@ xdata = np.arange(200)
 models = ['ctrpo','matrpo','trpo']
 results = []
 for model in models:
-    results.append(get_training_curve(model, num_agents=6))
+    results.append(get_training_curve(model, num_agents=3))
 
 fig = plt.figure()
 sns.tsplot(time=xdata, data=results[0], color='r', linestyle='-', legend=True)
@@ -40,18 +40,18 @@ plt.show()
 #     for seed in seeds:
 #         reward_path = '/home/lihepeng/Documents/Github/results/training/{}/{}/s{}'.format(env_id, model, seed)
 #         df_train = load_results(reward_path)
-#         pred_data = df_train[['r0','r1','r2','r3']].sum(axis=1).values[:500*150]
-#         pred_data = np.mean(pred_data.reshape(-1, 150), axis=1)
+#         pred_data = df_train[['r0','r1','r2','r3']].sum(axis=1).values[:200*200]
+#         pred_data = np.mean(pred_data.reshape(-1, 200), axis=1)
 #         pred_results.append(pred_data)
 
-#         prey_data = df_train[['r4','r5','r6']].sum(axis=1).values[:500*150]
-#         prey_data = np.mean(prey_data.reshape(-1, 150), axis=1)
+#         prey_data = df_train[['r4','r5','r6']].sum(axis=1).values[:200*200]
+#         prey_data = np.mean(prey_data.reshape(-1, 200), axis=1)
 #         prey_results.append(prey_data)
 
 #     return np.array(pred_results), np.array(prey_results)
 
 
-# xdata = np.arange(500)
+# xdata = np.arange(200)
 # models = ['independent_vs_independent']
 # pred_results, prey_results = [], []
 # for model in models:
@@ -61,8 +61,8 @@ plt.show()
 
 # fig = plt.figure()
 # sns.tsplot(time=xdata, data=pred_results[0], color='r', linestyle='-', legend=True)
-# fig = plt.figure()
-# sns.tsplot(time=xdata, data=pred_results[0], color='r', linestyle='-', legend=True)
+# # fig = plt.figure()
+# # sns.tsplot(time=xdata, data=pred_results[0], color='r', linestyle='-', legend=True)
 # # sns.tsplot(time=xdata, data=results[1], color='g', linestyle='-', legend=True)
 # # sns.tsplot(time=xdata, data=results[2], color='b', linestyle='-', legend=True)
 # # plt.legend(labels=['Central TRPO', 'MATRPO', 'Independent TRPO'])

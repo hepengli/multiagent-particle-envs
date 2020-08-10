@@ -17,17 +17,13 @@ def main():
         env_id=env_id,
         nsteps=1000,
         network='mlp',
-        num_env=15,
+        num_env=20,
         admm_iter=200,
-        # ob_clip_range=5.0,
-        max_kl=0.01,
         load_path=load_path,
         logger_dir=reward_path,
         seed=seed,
-        finite=True,
-        gamma=0.95,
         info_keywords=tuple('r{}'.format(i) for i in range(8)),
-        adv='cooperative',
+        adv='independent',
         **network_kwargs)
 
     # training
@@ -37,7 +33,7 @@ def main():
         agents.model.train(actions, obs, returns, dones, values, advs, neglogpacs)
 
         df_train = load_results(reward_path)
-        plot(df_train, agents, 150)
+        plot(df_train, agents, 200)
         if step % 10 == 0:
             agents.model.save()
 
