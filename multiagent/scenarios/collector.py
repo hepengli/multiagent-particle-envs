@@ -170,7 +170,7 @@ class Scenario(BaseScenario):
                 closest_inds = list(i for _, i in closest_agents)
                 closest_avg_dist_vect = world.cached_dist_vect[closest_inds, agent.i].mean(axis=0)
                 rew -= 0.1 * np.linalg.norm(closest_avg_dist_vect)
-        rew += self.global_reward(world) * len(self.deposits) if agent.leader else 0
+        rew += self.global_reward(world) * len(self.deposits(world)) if agent.leader else 0
         return rew
 
     def collector_reward(self, agent, world):
@@ -186,7 +186,7 @@ class Scenario(BaseScenario):
             rew -= 0.1 * min(world.cached_dist_mag[d.i, agent.i] for d in
                              self.deposits(world) if d.d_i == agent.holding)
         # collectors get global reward
-        rew += self.global_reward(world) * len(self.collectors) if agent.leader else 0
+        rew += self.global_reward(world) * len(self.collectors(world)) if agent.leader else 0
         return rew
 
     def global_reward(self, world):
