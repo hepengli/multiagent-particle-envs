@@ -8,7 +8,7 @@ from multiagent.plot import plot
 
 def main():
     env_id = 'collector'
-    model = 'matrpo'
+    model = 'trpo'
     seed = 2
     reward_path = '/home/lihepeng/Documents/Github/results/training/{}/{}/s{}'.format(env_id, model, seed)
     load_path = '/home/lihepeng/Documents/Github/results/graphs/{}/{}/s{}'.format(env_id, model, seed)

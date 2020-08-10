@@ -4,6 +4,7 @@ bin/__init__.py
 bin/interactive.py
 bin/learning_curves.py
 bin/play.py
+bin/spread_play.py
 bin/train_collector.py
 bin/train_predator_prey.py
 bin/train_spread.py
