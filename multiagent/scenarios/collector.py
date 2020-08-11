@@ -24,7 +24,7 @@ class Scenario(BaseScenario):
             [0., 0., 0., 1.,-1. ,0., 0., 0.],
             [0., 0., 0., 0., 1.,-1., 0., 0.],
             [0., 0., 0., 0., 0., 1.,-1., 0.],
-            [0., 0., 0., 0., 0., 0.,-1.,-1.],
+            [0., 0., 0., 0., 0., 0., 1.,-1.],
         ], dtype=np.float32)
         # add agents
         world.agents = [Agent() for i in range(num_agents)]

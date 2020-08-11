@@ -144,7 +144,8 @@ class AgentModel(tf.Module):
         syncloss = tf.reduce_mean(multipliers * syncerr) + \
                    0.5 * self.rho * tf.reduce_mean(tf.square(syncerr))
         lagrangeloss = - surrgain - entbonus + syncloss
-        losses = [lagrangeloss, surrgain, syncloss, meankl, entbonus, meanent]
+        mean_syncerr = tf.reduce_mean(tf.square(syncerr))
+        losses = [lagrangeloss, surrgain, mean_syncerr, meankl, entbonus, meanent]
         return losses
 
 
@@ -364,10 +365,10 @@ class AgentModel(tf.Module):
             for _ in range(10):
                 thnew = thbefore + fullstep * stepsize
                 self.set_from_flat(thnew)
-                meanlosses = lagrange, surr, syncloss, kl, entbonus, meanent = self.allmean(np.array(self.compute_losses(*args, *synargs)))
+                meanlosses = lagrange, surr, syncerr, kl, entbonus, meanent = self.allmean(np.array(self.compute_losses(*args, *synargs)))
                 improve = lagrangebefore - lagrange
                 surr_improve = surr - surrbefore
-                logger.log("Surr_improve: %.5f Syncloss: %.5f"%(surr_improve, syncloss))
+                logger.log("Surr_improve: %.5f Sync_error: %.5f"%(surr_improve, syncerr))
                 # logger.log("Ent_bonus: %.5f Mean_ent: %.5f"%(entbonus, meanent))
                 # logger.log("Expected: %.3f Actual: %.3f"%(expectedimprove, improve))
                 if not np.isfinite(meanlosses).all():

@@ -8,7 +8,7 @@ from multiagent.plot import plot
 
 def main():
     env_id = 'collector'
-    model = 'trpo'
+    model = 'matrpo'
     seed = 2
     reward_path = '/home/lihepeng/Documents/Github/results/training/{}/{}/s{}'.format(env_id, model, seed)
     load_path = '/home/lihepeng/Documents/Github/results/graphs/{}/{}/s{}'.format(env_id, model, seed)
@@ -19,12 +19,11 @@ def main():
         network='mlp',
         num_env=20,
         admm_iter=200,
-        max_kl=0.001,
         load_path=load_path,
         logger_dir=reward_path,
         seed=seed,
         info_keywords=tuple('r{}'.format(i) for i in range(8)),
-        adv='independent',
+        adv='cooperative',
         **network_kwargs)
 
     # training
