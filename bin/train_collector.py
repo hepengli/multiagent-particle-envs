@@ -15,10 +15,11 @@ def main():
     network_kwargs = {'num_layers': 3, 'num_hidden': 128}
     agents = MATRPO(
         env_id=env_id,
-        nsteps=1000,
+        nsteps=500,
         network='mlp',
         num_env=20,
         admm_iter=200,
+        max_kl=0.001,
         load_path=load_path,
         logger_dir=reward_path,
         seed=seed,
@@ -33,7 +34,7 @@ def main():
         agents.model.train(actions, obs, returns, dones, values, advs, neglogpacs)
 
         df_train = load_results(reward_path)
-        plot(df_train, agents, 200)
+        plot(df_train, agents, 100)
         if step % 10 == 0:
             agents.model.save()
 

@@ -16,6 +16,7 @@ class Scenario(BaseScenario):
         world.treasure_colors = np.array(
             sns.color_palette(n_colors=num_deposits))
         num_treasures = num_collectors
+        num_walls = 4
         world.comm_matrix = np.array([
             [1.,-1., 0., 0., 0., 0., 0., 0.],
             [0., 1.,-1., 0., 0., 0., 0., 0.],
@@ -40,7 +41,6 @@ class Scenario(BaseScenario):
             agent.silent = True
             agent.ghost = True
             agent.holding = None
-            agent.leader = True if (i == 0) or (i == num_collectors) else False
             agent.size = 0.05 if agent.collector else 0.075
             agent.accel = 1.5
             agent.initial_mass = 1.0 if agent.collector else 2.25
@@ -58,7 +58,13 @@ class Scenario(BaseScenario):
             landmark.movable = False
             landmark.size = 0.025
             landmark.boundary = False
-        world.walls = []
+        world.walls = [Wall() for i in range(num_walls)]
+        for i, landmark in enumerate(world.walls):
+            landmark.name = 'wall %d' % i
+            landmark.orient = 'H' if i % 2 == 0 else 'V'
+            landmark.axis_pos = - 1.2 if i < 2 else 1.2
+            landmark.width = 0.4
+            landmark.endpoints = (-1.2, 1.2)
         # make initial conditions
         self.reset_world(world, np.random)
         self.reset_cached_rewards()
@@ -170,7 +176,7 @@ class Scenario(BaseScenario):
                 closest_inds = list(i for _, i in closest_agents)
                 closest_avg_dist_vect = world.cached_dist_vect[closest_inds, agent.i].mean(axis=0)
                 rew -= 0.1 * np.linalg.norm(closest_avg_dist_vect)
-        rew += self.global_reward(world) * len(self.deposits(world)) if agent.leader else 0
+        rew += self.global_reward(world)
         return rew
 
     def collector_reward(self, agent, world):
@@ -178,15 +184,15 @@ class Scenario(BaseScenario):
         # penalize collisions between collectors
         rew -= 5 * sum(self.is_collision(agent, a, world)
                        for a in self.collectors(world) if a is not agent)
-        shape = True
-        if agent.holding is None and shape:
-            rew -= 0.1 * min(world.cached_dist_mag[t.i, agent.i] for t in
-                             self.treasures(world))
-        elif shape:
-            rew -= 0.1 * min(world.cached_dist_mag[d.i, agent.i] for d in
-                             self.deposits(world) if d.d_i == agent.holding)
-        # collectors get global reward
-        rew += self.global_reward(world) * len(self.collectors(world)) if agent.leader else 0
+        # shape = False
+        # if agent.holding is None and shape:
+        #     rew -= 0.1 * min(world.cached_dist_mag[t.i, agent.i] for t in
+        #                      self.treasures(world))
+        # elif shape:
+        #     rew -= 0.1 * min(world.cached_dist_mag[d.i, agent.i] for d in
+        #                      self.deposits(world) if d.d_i == agent.holding)
+        # # collectors get global reward
+        # rew += self.global_reward(world)
         return rew
 
     def global_reward(self, world):

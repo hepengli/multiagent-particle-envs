@@ -5,9 +5,9 @@ import gym
 from multiagent.matrpo import MATRPO
 
 def main():
-    seed = 2
+    seed = 3
     env_id = 'collector'
-    model = 'matrpo'
+    model = 'trpo'
     network_kwargs = {'num_layers': 3, 'num_hidden': 128, 'activation': 'tanh'}
     load_path = '/home/lihepeng/Documents/Github/results/graphs/{}/{}/s{}'.format(env_id, model, seed)
     agents = MATRPO(
@@ -17,7 +17,6 @@ def main():
         num_env=1,
         admm_iter=[0,0],
         load_path=load_path,
-        info_keywords=tuple('r{}'.format(i) for i in range(8)),
         adv='independent',
         **network_kwargs)
 
