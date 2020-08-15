@@ -25,6 +25,7 @@ class Scenario(BaseScenario):
             [0., 0., 0., 0., 1.,-1., 0., 0.],
             [0., 0., 0., 0., 0., 1.,-1., 0.],
             [0., 0., 0., 0., 0., 0., 1.,-1.],
+            [1., 0., 0., 0., 0., 0., 0.,-1.],
         ], dtype=np.float32)
         # add agents
         world.agents = [Agent() for i in range(num_agents)]
@@ -58,13 +59,13 @@ class Scenario(BaseScenario):
             landmark.movable = False
             landmark.size = 0.025
             landmark.boundary = False
-        # world.walls = [Wall() for i in range(num_walls)]
-        # for i, landmark in enumerate(world.walls):
-        #     landmark.name = 'wall %d' % i
-        #     landmark.orient = 'H' if i % 2 == 0 else 'V'
-        #     landmark.axis_pos = - 1.2 if i < 2 else 1.2
-        #     landmark.width = 0.4
-        #     landmark.endpoints = (-1.2, 1.2)
+        world.walls = [Wall() for i in range(num_walls)]
+        for i, landmark in enumerate(world.walls):
+            landmark.name = 'wall %d' % i
+            landmark.orient = 'H' if i % 2 == 0 else 'V'
+            landmark.axis_pos = - 1.2 if i < 2 else 1.2
+            landmark.width = 0.4
+            landmark.endpoints = (-1.2, 1.2)
         # make initial conditions
         self.reset_world(world, np.random)
         self.reset_cached_rewards()
@@ -155,6 +156,12 @@ class Scenario(BaseScenario):
     def reward(self, agent, world):
         main_reward = (self.collector_reward(agent, world) if agent.collector
                        else self.deposit_reward(agent, world))
+
+        # main_reward = 0.0
+        # if agent == self.collectors(world)[0]:
+        #     main_reward += sum([self.deposit_reward(a, world) for a in self.deposits(world)])
+        #     main_reward += sum([self.collector_reward(a, world) for a in self.collectors(world)])
+
         return main_reward
 
     def deposit_reward(self, agent, world):
@@ -182,7 +189,7 @@ class Scenario(BaseScenario):
     def collector_reward(self, agent, world):
         rew = 0
         # penalize collisions between collectors
-        rew -= 5 * sum(self.is_collision(agent, a, world)
+        rew -= 1 * sum(self.is_collision(agent, a, world)
                        for a in self.collectors(world) if a is not agent)
         # shape = False
         # if agent.holding is None and shape:
