@@ -58,13 +58,13 @@ class Scenario(BaseScenario):
             landmark.movable = False
             landmark.size = 0.025
             landmark.boundary = False
-        world.walls = [Wall() for i in range(num_walls)]
-        for i, landmark in enumerate(world.walls):
-            landmark.name = 'wall %d' % i
-            landmark.orient = 'H' if i % 2 == 0 else 'V'
-            landmark.axis_pos = - 1.2 if i < 2 else 1.2
-            landmark.width = 0.4
-            landmark.endpoints = (-1.2, 1.2)
+        # world.walls = [Wall() for i in range(num_walls)]
+        # for i, landmark in enumerate(world.walls):
+        #     landmark.name = 'wall %d' % i
+        #     landmark.orient = 'H' if i % 2 == 0 else 'V'
+        #     landmark.axis_pos = - 1.2 if i < 2 else 1.2
+        #     landmark.width = 0.4
+        #     landmark.endpoints = (-1.2, 1.2)
         # make initial conditions
         self.reset_world(world, np.random)
         self.reset_cached_rewards()

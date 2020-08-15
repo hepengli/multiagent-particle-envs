@@ -146,9 +146,11 @@ class MATRPO(object):
                 obs_n, reward_n, done_n, _ = self.test_env.step(act_n)
                 # render all agent views
                 self.test_env.render()
+                import time
+                time.sleep(0.05)
                 # display rewards
-                for agent in self.test_env.unwrapped.world.agents:
-                    print(agent.name + " reward: %0.3f" % self.test_env.unwrapped._get_reward(agent))
+                for i, agent in enumerate(self.test_env.unwrapped.world.agents):
+                    print(agent.name + " reward: %0.3f" % reward_n[i])
                 # break
                 if done_n:
                     print('done!')
