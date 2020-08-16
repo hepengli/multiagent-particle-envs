@@ -380,7 +380,7 @@ class AgentModel(tf.Module):
                 else:
                     logger.log("Stepsize OK!")
                     break
-                stepsize *= .5
+                stepsize *= .85
             else:
                 logger.log("couldn't compute a good step")
                 self.set_from_flat(thbefore)
@@ -440,7 +440,7 @@ class AgentModel(tf.Module):
         with self.timed("vf"):
             for _ in range(self.vf_iters):
                 for (mbob, mbret) in dataset.iterbatches((obs, returns),
-                include_final_partial_batch=False, batch_size=64):
+                include_final_partial_batch=False, batch_size=128):
                     g = self.compute_vflossandgrad(mbob, mbret)
                     g = self.allmean(g.numpy())
                     self.vfadam.update(g, self.vf_stepsize)

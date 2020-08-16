@@ -16,7 +16,7 @@ class Scenario(BaseScenario):
         world.treasure_colors = np.array(
             sns.color_palette(n_colors=num_deposits))
         num_treasures = num_collectors
-        num_walls = 4
+        num_walls = 0
         world.comm_matrix = np.array([
             [1.,-1., 0., 0., 0., 0., 0., 0.],
             [0., 1.,-1., 0., 0., 0., 0., 0.],
@@ -25,7 +25,6 @@ class Scenario(BaseScenario):
             [0., 0., 0., 0., 1.,-1., 0., 0.],
             [0., 0., 0., 0., 0., 1.,-1., 0.],
             [0., 0., 0., 0., 0., 0., 1.,-1.],
-            [1., 0., 0., 0., 0., 0., 0.,-1.],
         ], dtype=np.float32)
         # add agents
         world.agents = [Agent() for i in range(num_agents)]
@@ -82,7 +81,7 @@ class Scenario(BaseScenario):
         self.global_holding_reward = None
         self.global_deposit_reward = None
 
-    def post_step(self, world):
+    def post_step(self, world, np_random):
         self.reset_cached_rewards()
         for l in world.landmarks:
             if l.alive:
@@ -91,16 +90,18 @@ class Scenario(BaseScenario):
                         l.alive = False
                         a.holding = l.type
                         a.color = 0.85 * l.color
-                        l.state.p_pos = np.array([-999., -999.])
+                        l.state.p_pos = np.array([-0., -0.])
+                        l.visible = False
                         break
             else:
-                if np.random.uniform() <= l.respawn_prob:
+                if np_random.uniform() <= l.respawn_prob:
                     bound = 0.95
-                    l.state.p_pos = np.random.uniform(low=-bound, high=bound,
+                    l.state.p_pos = np_random.uniform(low=-bound, high=bound,
                                                       size=world.dim_p)
-                    l.type = np.random.choice(world.treasure_types)
+                    l.type = np_random.choice(world.treasure_types)
                     l.color = world.treasure_colors[l.type]
                     l.alive = True
+                    l.visible = True
         for a in self.collectors(world):
             if a.holding is not None:
                 for d in self.deposits(world):
@@ -111,7 +112,7 @@ class Scenario(BaseScenario):
     def reset_world(self, world, np_random):
         # set random initial states
         for i, agent in enumerate(world.agents):
-            agent.state.p_pos = np.random.uniform(low=-1, high=1,
+            agent.state.p_pos = np_random.uniform(low=-1, high=1,
                                                   size=world.dim_p)
             agent.state.p_vel = np.zeros(world.dim_p, dtype=np.float32)
             agent.state.c = np.zeros(world.dim_c, dtype=np.float32)
@@ -120,9 +121,9 @@ class Scenario(BaseScenario):
                 agent.color = np.array([0.85, 0.85, 0.85], dtype=np.float32)
         for i, landmark in enumerate(world.landmarks):
             bound = 0.95
-            landmark.type = np.random.choice(world.treasure_types)
+            landmark.type = np_random.choice(world.treasure_types)
             landmark.color = world.treasure_colors[landmark.type]
-            landmark.state.p_pos = np.random.uniform(low=-bound, high=bound,
+            landmark.state.p_pos = np_random.uniform(low=-bound, high=bound,
                                                      size=world.dim_p)
             landmark.state.p_vel = np.zeros(world.dim_p, dtype=np.float32)
             landmark.alive = True
@@ -183,13 +184,24 @@ class Scenario(BaseScenario):
                 closest_inds = list(i for _, i in closest_agents)
                 closest_avg_dist_vect = world.cached_dist_vect[closest_inds, agent.i].mean(axis=0)
                 rew -= 0.1 * np.linalg.norm(closest_avg_dist_vect)
+
+            # penalize by distance between collectors and closest relevant trrasures
+            min_dists_to_treasures = []
+            for t in self.treasures(world):
+                dists_to_treasure = [world.cached_dist_mag[t.i, a.i]
+                                    for a in self.collectors(world)
+                                    if a.holding is None and t.alive]
+                if len(dists_to_treasure) > 0:
+                    min_dists_to_treasures.append(dists_to_treasure)
+            rew -= 0.1 * np.mean(min_dists_to_treasures)
+
         rew += self.global_reward(world)
         return rew
 
     def collector_reward(self, agent, world):
         rew = 0
         # penalize collisions between collectors
-        rew -= 1 * sum(self.is_collision(agent, a, world)
+        rew -= 5 * sum(self.is_collision(agent, a, world)
                        for a in self.collectors(world) if a is not agent)
         # shape = False
         # if agent.holding is None and shape:
@@ -212,17 +224,19 @@ class Scenario(BaseScenario):
     def calc_global_collecting_reward(self, world):
         rew = 0
         for t in self.treasures(world):
-            rew += 5 * sum(self.is_collision(a, t, world)
-                           for a in self.collectors(world)
-                           if a.holding is None)
+            if t.alive:
+                rew += 10 * sum(self.is_collision(a, t, world)
+                               for a in self.collectors(world)
+                               if a.holding is None)
         self.global_collecting_reward = rew
 
     def calc_global_deposit_reward(self, world):
         # reward deposits for getting treasure from collectors
         rew = 0
         for d in self.deposits(world):
-            rew += 5 * sum(self.is_collision(d, a, world) for a in
-                           self.collectors(world) if a.holding == d.d_i)
+            rew += 10 * sum(self.is_collision(d, a, world)
+                            for a in self.collectors(world)
+                            if a.holding == d.d_i)
         self.global_deposit_reward = rew
 
     def get_agent_encoding(self, agent, world):
@@ -262,5 +276,6 @@ class Scenario(BaseScenario):
             t = world.entities[i]
             obs.append(world.cached_dist_vect[i, agent.i])
             obs.append((np.arange(n_treasure_types) == t.type))
+            obs.append((np.arange(2) == t.alive))
 
         return np.concatenate(obs).astype(np.float32)

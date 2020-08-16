@@ -37,6 +37,8 @@ class Wall(object):
         self.width = width
         # whether wall is impassable to all agents
         self.hard = hard
+        # can be observed by the world
+        self.visible = False
         # color of wall
         self.color = np.array([0.0, 0.0, 0.0], dtype=np.float32)
 
@@ -56,6 +58,8 @@ class Entity(object):
         self.collide = True
         # entity can pass through non-hard walls
         self.ghost = False
+        # can be observed by the world
+        self.visible = True
         # material density (affects mass)
         self.density = 25.0
         # color

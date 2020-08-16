@@ -32,6 +32,8 @@ class Wall(object):
         self.axis_pos = axis_pos
         # endpoints of wall (x-coords for H, y-coords for V)
         self.endpoints = np.array(endpoints)
+        # can be observed by the world
+        self.visible = False
         # width of wall
         self.width = width
         # whether wall is impassable to all agents
@@ -54,6 +56,8 @@ class Entity(object):
         self.density = 25.0
         # color
         self.color = None
+        # can be observed by the world
+        self.visible = True
         # max speed and accel
         self.max_speed = None
         self.accel = None
