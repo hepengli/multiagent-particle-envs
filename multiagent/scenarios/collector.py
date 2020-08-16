@@ -193,7 +193,8 @@ class Scenario(BaseScenario):
                                      if a.holding is None and t.alive]
                 if len(dists_to_treasure) > 0:
                     min_dists_to_treasures.append(dists_to_treasure)
-            rew -= 0.1 * np.mean(min_dists_to_treasures)
+            if len(min_dists_to_treasures) > 0:
+                rew -= 0.1 * np.mean(min_dists_to_treasures)
 
         rew += self.global_reward(world)
         return rew

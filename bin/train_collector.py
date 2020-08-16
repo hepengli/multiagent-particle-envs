@@ -8,7 +8,7 @@ from multiagent.plot import plot
 
 env_id = 'collector'
 model = 'matrpo'
-seed = 3
+seed = 2
 reward_path = '/home/lihepeng/Documents/Github/results/training/{}/{}/s{}'.format(env_id, model, seed)
 load_path = '/home/lihepeng/Documents/Github/results/graphs/{}/{}/s{}'.format(env_id, model, seed)
 network_kwargs = {'num_layers': 3, 'num_hidden': 128, 'activation': 'selu'}
@@ -22,6 +22,7 @@ agents = MATRPO(
     logger_dir=reward_path,
     seed=seed,
     ob_normalization=True,
+    ob_clip_range=5.0,
     info_keywords=tuple('r{}'.format(i) for i in range(8)),
     adv='cooperative',
     **network_kwargs)
