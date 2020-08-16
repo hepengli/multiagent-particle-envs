@@ -187,10 +187,10 @@ class Scenario(BaseScenario):
 
             # penalize by distance between collectors and closest relevant trrasures
             min_dists_to_treasures = []
-            for t in self.treasures(world):
+            for a in self.collectors(world):
                 dists_to_treasure = [world.cached_dist_mag[t.i, a.i]
-                                    for a in self.collectors(world)
-                                    if a.holding is None and t.alive]
+                                     for t in self.treasures(world)
+                                     if a.holding is None and t.alive]
                 if len(dists_to_treasure) > 0:
                     min_dists_to_treasures.append(dists_to_treasure)
             rew -= 0.1 * np.mean(min_dists_to_treasures)
