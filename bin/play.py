@@ -8,7 +8,7 @@ def main():
     seed = 3
     env_id = 'collector'
     model = 'matrpo'
-    network_kwargs = {'num_layers': 2, 'num_hidden': 128, 'activation': 'tanh'}
+    network_kwargs = {'num_layers': 3, 'num_hidden': 128, 'activation': 'selu'}
     load_path = '/home/lihepeng/Documents/Github/results/graphs/{}/{}/s{}'.format(env_id, model, seed)
     agents = MATRPO(
         env_id=env_id,
