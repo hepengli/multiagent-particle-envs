@@ -22,6 +22,8 @@ class AgentModel(tf.Module):
                  cg_damping, cg_iters, lbfgs_iters, ob_clip_range, load_path, **network_kwargs):
         super(AgentModel, self).__init__(name='MATRPOModel')
         self.agent = agent
+        self.comms = agent.comms
+        self.neighbors = agent.neighbors
         self.nsteps = nsteps
         self.rho = rho
         self.max_kl = max_kl
@@ -127,7 +129,7 @@ class AgentModel(tf.Module):
 
 
     @tf.function
-    def compute_losses(self, ob, ac, atarg, estimates, multipliers, comm):
+    def compute_losses(self, ob, ac, atarg, estimates, multipliers):
         old_policy_latent = self.oldpi.policy_network(ob)
         old_pd, _ = self.oldpi.pdtype.pdfromlatent(old_policy_latent)
         policy_latent = self.pi.policy_network(ob)
@@ -140,7 +142,8 @@ class AgentModel(tf.Module):
         ratio = tf.exp(pd.logp(ac) - old_pd.logp(ac))
         surrgain = tf.reduce_mean(ratio * atarg)
         logratio = pd.logp(ac) - old_pd.logp(ac)
-        syncerr = comm * logratio - estimates
+
+        syncerr = tf.concat([[c*logratio] for c in self.comms], axis=0) - estimates
         syncloss = tf.reduce_mean(multipliers * syncerr) + \
                    0.5 * self.rho * tf.reduce_mean(tf.square(syncerr))
         lagrangeloss = - surrgain - entbonus + syncloss
@@ -205,22 +208,21 @@ class AgentModel(tf.Module):
 
 
     @tf.function
-    def compute_vjp(self, ob, ac, atarg, estimates, multipliers, comm):
+    def compute_vjp(self, ob, ac, atarg, flat_tangents):
         with tf.GradientTape() as tape:
             old_policy_latent = self.oldpi.policy_network(ob)
             old_pd, _ = self.oldpi.pdtype.pdfromlatent(old_policy_latent)
             policy_latent = self.pi.policy_network(ob)
             pd, _ = self.pi.pdtype.pdfromlatent(policy_latent)
             logratio = pd.logp(ac) - old_pd.logp(ac)
-            v = atarg - comm * multipliers + self.rho * comm * estimates
-            vpr = tf.reduce_mean(v * logratio)
+            vpr = tf.reduce_mean(flat_tangents * logratio)
         vjp = tape.jacobian(vpr, self.pi_var_list)
 
         return U.flatgrad(vjp, self.pi_var_list)
 
 
     @tf.function
-    def compute_jvp(self, flat_tangents, ob, ac):
+    def compute_jvp(self, ob, ac, atarg, flat_tangents):
         tangents = self.reshape_from_flat(flat_tangents)
         with tf.autodiff.ForwardAccumulator(
                 primals=self.pi_var_list,
@@ -310,27 +312,28 @@ class AgentModel(tf.Module):
         old_pd, _ = self.oldpi.pdtype.pdfromlatent(old_policy_latent)
         policy_latent = self.pi.policy_network(ob)
         pd, _ = self.pi.pdtype.pdfromlatent(policy_latent)
-        logratio = pd.logp(ac) - old_pd.logp(ac)
+        logratio = (pd.logp(ac) - old_pd.logp(ac)).numpy()
+        multiplier = self.multipliers[nb].copy()
 
-        return logratio, self.multipliers[nb]
+        return logratio, multiplier
 
     def exchange(self, ob, ac, comm, nb_logratio, nb_multipliers, nb):
         old_policy_latent = self.oldpi.policy_network(ob)
         old_pd, _ = self.oldpi.pdtype.pdfromlatent(old_policy_latent)
         policy_latent = self.pi.policy_network(ob)
         pd, _ = self.pi.pdtype.pdfromlatent(policy_latent)
-        logratio = pd.logp(ac) - old_pd.logp(ac)
+        logratio = (pd.logp(ac) - old_pd.logp(ac)).numpy()
+        multiplier = self.multipliers[nb].copy()
 
-        v = 0.5 * (self.multipliers[nb] + nb_multipliers) + \
+        v = 0.5 * (multiplier + nb_multipliers) + \
             0.5 * self.rho * (comm * logratio + (-comm) * nb_logratio)
-        self.estimates[nb] = np.array((1.0/self.rho) * (self.multipliers[nb] - v) + comm * logratio).copy()
-        self.multipliers[nb] = np.array(v).copy()
+        self.estimates[nb] = (multiplier - v) / self.rho + comm * logratio
+        self.multipliers[nb] = v.copy()
 
-    def update(self, obs, actions, atarg, returns, vpredbefore, comm, nb):
+    def update(self, obs, actions, atarg, returns, vpredbefore):
         # Prepare data
-        estimates = self.estimates[nb]
-        multipliers = self.multipliers[nb]
-        args, synargs = (obs, actions, atarg), (estimates, multipliers, comm)
+        args = (obs, actions, atarg)
+        synargs = (self.estimates[self.neighbors], self.multipliers[self.neighbors])
         # Sampling every 5
         fvpargs = [arr[::5] for arr in args]
 
@@ -338,12 +341,13 @@ class AgentModel(tf.Module):
 
         def hvp(p):
             fvp = self.allmean(self.compute_fvp(p, *fvpargs).numpy())
-            jjvp = self.allmean(self.compute_jjvp(p, *fvpargs).numpy())
-            return (fvp+jjvp)/2. + self.cg_damping * p
+            # jjvp = self.allmean(self.compute_jjvp(p, *fvpargs).numpy())
+            return fvp + self.cg_damping * p
 
         with self.timed("computegrad"):
-            g = self.compute_vjp(*args, *synargs)
-            g = self.allmean(g.numpy())
+            v = atarg - self.comms.dot(self.multipliers[self.neighbors]) \
+                + self.rho * self.comms.dot(self.estimates[self.neighbors])
+            g = self.allmean(self.compute_vjp(*args, v).numpy())
         lossbefore = self.allmean(np.array(self.compute_losses(*args, *synargs)))
 
         if np.allclose(g, 0):
@@ -380,7 +384,7 @@ class AgentModel(tf.Module):
                 else:
                     logger.log("Stepsize OK!")
                     break
-                stepsize *= .85
+                stepsize *= .5
             else:
                 logger.log("couldn't compute a good step")
                 self.set_from_flat(thbefore)
@@ -440,7 +444,7 @@ class AgentModel(tf.Module):
         with self.timed("vf"):
             for _ in range(self.vf_iters):
                 for (mbob, mbret) in dataset.iterbatches((obs, returns),
-                include_final_partial_batch=False, batch_size=128):
+                include_final_partial_batch=False, batch_size=64):
                     g = self.compute_vflossandgrad(mbob, mbret)
                     g = self.allmean(g.numpy())
                     self.vfadam.update(g, self.vf_stepsize)

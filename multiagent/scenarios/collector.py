@@ -186,17 +186,15 @@ class Scenario(BaseScenario):
                 rew -= 0.1 * np.linalg.norm(closest_avg_dist_vect)
 
             # penalize by distance between collectors and closest relevant trrasures
-            min_dists_to_treasures = []
             for a in self.collectors(world):
                 dists_to_treasure = [world.cached_dist_mag[t.i, a.i]
                                      for t in self.treasures(world)
                                      if a.holding is None and t.alive]
                 if len(dists_to_treasure) > 0:
-                    min_dists_to_treasures.append(dists_to_treasure)
-            if len(min_dists_to_treasures) > 0:
-                rew -= 0.1 * np.mean(min_dists_to_treasures)
+                    rew -= 0.1 * min(dists_to_treasure)
 
         rew += self.global_reward(world)
+
         return rew
 
     def collector_reward(self, agent, world):

@@ -5,7 +5,7 @@ import gym
 from multiagent.matrpo import MATRPO
 
 def main():
-    seed = 2
+    seed = 3
     env_id = 'collector'
     model = 'matrpo'
     network_kwargs = {'num_layers': 3, 'num_hidden': 128, 'activation': 'selu'}
@@ -16,7 +16,6 @@ def main():
         num_env=1,
         admm_iter=[0,0],
         load_path=load_path,
-        ob_normalization=True,
         adv='cooperative',
         network='mlp',
         **network_kwargs)

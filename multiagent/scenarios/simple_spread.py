@@ -13,9 +13,8 @@ class Scenario(BaseScenario):
         world.collaborative = True
         # add comm network
         world.comm_matrix = np.array([
-            [1.,-1., 0.],
-            [0., 1.,-1.],
-            [0., 0., 1.],
+            [1.,1.,0.],
+            [0.,1.,1.],
         ], dtype=np.float32)
         # add agents
         world.agents = [Agent() for i in range(num_agents)]
@@ -78,13 +77,18 @@ class Scenario(BaseScenario):
     def reward(self, agent, world):
         # Agents are rewarded based on minimum agent distance to each landmark, penalized for collisions
         rew = 0
-        for l in world.landmarks:
-            dists = [np.sqrt(np.sum(np.square(a.state.p_pos - l.state.p_pos))) for a in world.agents]
-            rew -= min(dists)
+        if agent == world.agents[2]:
+            for l in world.landmarks:
+                dists = [np.sqrt(np.sum(np.square(a.state.p_pos - l.state.p_pos))) for a in world.agents]
+                rew -= 0.1 * min(dists)
+
         if agent.collide:
-            for a in world.agents:
+            for a in world.agents: 
+                if a == agent: 
+                    continue
                 if self.is_collision(a, agent):
-                    rew -= 1
+                    assert a != agent
+                    rew -= 1.0
         return rew
 
     def observation(self, agent, world):

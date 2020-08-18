@@ -132,8 +132,8 @@ class Model(object):
                 q = np.where(edge != 0)[0]
                 k, j = q[0], q[-1]
                 # Update Agent k and j
-                self.policies[k].update(*argvs[k], edge[k], j)
-                self.policies[j].update(*argvs[j], edge[j], k)
+                self.policies[k].update(*argvs[k])
+                self.policies[j].update(*argvs[j])
                 ratio_k, multipliers_k = self.policies[k].info_to_exchange(obs[k], actions[k], j)
                 ratio_j, multipliers_j = self.policies[j].info_to_exchange(obs[j], actions[j], k)
                 self.policies[k].exchange(obs[k], actions[k], edge[k], ratio_j, multipliers_j, j)
@@ -176,8 +176,8 @@ class Model(object):
                     k, j = q[0], q[-1]
                     nk, nj = k-self.world.n_adv, j-self.world.n_adv
                     # Update Agent k and j
-                    self.policies[k].update(*argvs[nk], edge[k], nj)
-                    self.policies[j].update(*argvs[nj], edge[j], nk)
+                    self.policies[k].update(*argvs[nk])
+                    self.policies[j].update(*argvs[nj])
                     ratio_k, multipliers_k = self.policies[k].info_to_exchange(obs[k], actions[k], nj)
                     ratio_j, multipliers_j = self.policies[j].info_to_exchange(obs[j], actions[j], nk)
                     self.policies[k].exchange(obs[k], actions[k], edge[k], ratio_j, multipliers_j, nj)
