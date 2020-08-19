@@ -1,47 +1,33 @@
 import tensorflow as tf
 import numpy as np
-import time
+import time, copy
 
 class Model(object):
-    def __init__(self, env, world, policies, admm_iter, adv, agt, ob_normalization):
+    def __init__(self, env, world, policies, admm_iter, mode, ob_normalization):
         self.env = env
         self.world = world
         self.policies = policies
-        self.nsteps = policies[0].nsteps
-        if isinstance(admm_iter, list):
-            assert len(admm_iter) == 2
-            self.admm_iter = admm_iter 
-        else:
-            self.admm_iter = [admm_iter]*2
-        self.adv = adv
-        self.agt = agt
+        self.admm_iter = admm_iter 
+        self.mode = mode
+        self.leader = 0 if mode == 'central' else None
+        self.test = False
         self.ob_normalization = ob_normalization
-        for i in range(world.n):
+        for i in range(len(world.agents)):
             policies[i].vfadam.sync()
 
     def step(self, obs):
         action_n, value_n, neglogp_n = [], [], []
-        if not isinstance(obs, list):
-            for i in range(self.world.n):
+        if not self.test:
+            for i in range(len(self.world.agents)):
                 action, value, _, neglogp = self.policies[i].pi.step(np.stack(obs[:,i], axis=0))
-                if i < self.world.n_adv:
-                    if self.adv == 'centralized':
-                        if len(action.shape) < 2: action = tf.expand_dims(action, axis=1)
-                        if i == 0: action_n += list(action.numpy().transpose())
-                    if self.adv=='cooperative':
-                        if len(action.shape) < 2: action = tf.expand_dims(action, axis=1)
-                        action_n.append(tf.gather(action,i,axis=1).numpy())
-                    if self.adv=='independent':
-                        action_n.append(action.numpy())
-                else:
-                    if self.agt == 'centralized':
-                        if len(action.shape) < 2: action = tf.expand_dims(action, axis=1)
-                        if i == self.world.n_adv: action_n += list(action.numpy().transpose())
-                    if self.agt=='cooperative':
-                        if len(action.shape) < 2: action = tf.expand_dims(action, axis=1)
-                        action_n.append(tf.gather(action,i-self.world.n_adv,axis=1).numpy())
-                    if self.agt=='independent':
-                        action_n.append(action.numpy())
+                if self.mode=='matrpo':
+                    if len(action.shape) < 2: action = tf.expand_dims(action, axis=1)
+                    action_n.append(tf.gather(action,i,axis=1).numpy())
+                elif self.mode=='trpo':
+                    action_n.append(action.numpy())
+                elif self.mode == 'central':
+                    if len(action.shape) < 2: action = tf.expand_dims(action, axis=1)
+                    if i == self.leader: action_n += list(action.numpy().transpose())
                 value_n.append(value.numpy())
                 neglogp_n.append(neglogp.numpy())
 
@@ -51,55 +37,34 @@ class Model(object):
 
             return actions, values, neglogps
         else:
-            for i in range(self.world.n):
+            for i in range(len(self.world.agents)):
                 action, value, _, neglogp = self.policies[i].pi.step(np.expand_dims(obs[i], axis=0))
-                if i < self.world.n_adv:
-                    if self.adv=='centralized':
-                        if len(action.shape) < 2: action = tf.expand_dims(action, axis=1)
-                        if i == 0: action_n += list(action[0].numpy())
-                    if self.adv=='cooperative':
-                        if len(action.shape) < 2: action = tf.expand_dims(action, axis=1)
-                        action_n.append(action[0,i].numpy())
-                    if self.adv=='independent':
-                        action_n.append(action.numpy())
-                else:
-                    if self.agt=='centralized':
-                        if len(action.shape) < 2: action = tf.expand_dims(action, axis=1)
-                        if i == self.world.n_adv: action_n += list(action[0].numpy())
-                    if self.agt=='cooperative':
-                        if len(action.shape) < 2: action = tf.expand_dims(action, axis=1)
-                        action_n.append(action[0,i-self.world.n_adv].numpy())
-                    if self.agt=='independent':
-                        action_n.append(action.numpy())
+                if self.mode=='matrpo':
+                    if len(action.shape) < 2: action = tf.expand_dims(action, axis=1)
+                    action_n.append(action[0,i].numpy())
+                elif self.mode=='trpo':
+                    action_n.append(action.numpy())
+                elif self.mode=='central':
+                    if len(action.shape) < 2: action = tf.expand_dims(action, axis=1)
+                    if i == self.leader: action_n += list(action[0].numpy())
                 value_n.append(value)
                 neglogp_n.append(neglogp)
 
             return action_n, value_n, neglogp_n
 
-
     def value(self, obs):
-        return np.vstack([self.policies[i].pi.value(tf.stack(obs[:,i], axis=0)) for i in range(self.world.n)]).transpose()
-
+        return np.vstack([self.policies[i].pi.value(tf.stack(obs[:,i], axis=0)) 
+                          for i in range(len(self.world.agents))]).transpose()
 
     def share_actions(self, actions):
-        s = actions.shape
-        assert s[0] == self.nsteps
         shared_actions_n = []
-        for i in range(self.world.n):
-            if i < self.world.n_adv:
-                if self.adv == 'cooperative':
-                    shared_actions_n.append(actions[:,:self.world.n_adv])
-                if self.adv == 'centralized':
-                    shared_actions_n.append(actions[:,:self.world.n_adv])
-                if self.adv == 'independent':
-                    shared_actions_n.append(actions[:,i:i+1])
-            else:
-                if self.agt == 'cooperative':
-                    shared_actions_n.append(actions[:,self.world.n_adv:])
-                if self.agt == 'centralized':
-                    shared_actions_n.append(actions[:,self.world.n_adv:])
-                if self.agt == 'independent':
-                    shared_actions_n.append(actions[:,i:i+1])
+        for i in range(len(self.world.agents)):
+            if self.mode == 'matrpo':
+                shared_actions_n.append(actions)
+            elif self.mode == 'trpo':
+                shared_actions_n.append(actions[:,i:i+1])
+            elif self.mode == 'central':
+                shared_actions_n.append(actions)
 
         return shared_actions_n
 
@@ -108,28 +73,27 @@ class Model(object):
             save_path = pi.manager.save()
             print("Save checkpoint to {}".format(save_path))
 
-    def train(self, actions, obs, returns, dones, values, atarg, neglogpacs):
+    def train(self, actions, obs, returns, dones, values, advs, neglogpacs):
         A = self.world.comm_matrix
-        n_adv, n_agt = self.world.n_adv, self.world.n_agt
-        adv_edges = A[np.unique(np.nonzero(A[:,:n_adv])[0])]
-        agt_edges = A[np.unique(np.nonzero(A[:,n_adv:])[0])]
+        edges = A[np.unique(np.nonzero(A)[0])]
 
         # Policy Update
-        if self.adv == 'cooperative':
-            argvs = []
-            for i in range(n_adv):
+        if self.mode == 'matrpo':
+            norm_advs = copy.deepcopy(advs)
+            for i in range(len(self.world.agents)):
                 if self.ob_normalization:
                     self.policies[i].pi.ob_rms.update(obs[i])
                     self.policies[i].oldpi.ob_rms.update(obs[i])
                 self.policies[i].reinitial_estimates()
                 self.policies[i].assign_old_eq_new()
                 self.policies[i].vfupdate(obs[i], returns[i], values[i])
-                atarg[i] = np.clip((atarg[i]-np.mean(atarg[:n_adv]))/np.std(atarg[:n_adv]), -5., 5.)
-                argvs.append((obs[i], actions[i], atarg[i], returns[i], values[i]))
+                norm_advs[i] = (advs[i]-np.mean(advs))/np.std(advs)
+                norm_advs[i] = np.clip(norm_advs[i], -5., 5.)
 
-            for itr in range(self.admm_iter[0]):
-                # edge = adv_edges[np.random.choice(range(len(adv_edges)))]
-                edge = adv_edges[itr % len(adv_edges)]
+            argvs = tuple(zip(obs, actions, norm_advs, returns, values))
+            for itr in range(self.admm_iter):
+                # edge = edges[np.random.choice(range(len(adv_edges)))]
+                edge = edges[itr % len(edges)]
                 q = np.where(edge != 0)[0]
                 k, j = q[0], q[-1]
                 # Update Agent k and j
@@ -139,65 +103,24 @@ class Model(object):
                 ratio_j, multipliers_j = self.policies[j].info_to_exchange(obs[j], actions[j], k)
                 self.policies[k].exchange(obs[k], actions[k], edge[k], ratio_j, multipliers_j, j)
                 self.policies[j].exchange(obs[j], actions[j], edge[j], ratio_k, multipliers_k, k)
-        elif self.adv == 'centralized':
+        elif self.mode == 'central':
             if self.ob_normalization:
-                self.policies[0].pi.ob_rms.update(obs[0])
-                self.policies[0].oldpi.ob_rms.update(obs[0])
-            atarg[0] = np.clip((atarg[0] - np.mean(atarg[0])) / np.std(atarg[0]), -5., 5.)
-            self.policies[0].assign_old_eq_new()
-            self.policies[0].vfupdate(obs[0], returns[0], values[0])
-            self.policies[0].trpo_update(obs[0], actions[0], atarg[0], returns[0], values[0])
+                self.policies[self.leader].pi.ob_rms.update(obs[self.leader])
+                self.policies[self.leader].oldpi.ob_rms.update(obs[self.leader])
+            norm_advs = (advs[self.leader] - np.mean(advs[self.leader])) / np.std(advs[self.leader])
+            norm_advs = np.clip(norm_advs, -5., 5.)
+            argvs = (obs[self.leader], actions[self.leader], norm_advs, returns[self.leader], values[self.leader])
+            self.policies[self.leader].assign_old_eq_new()
+            self.policies[self.leader].vfupdate(obs[self.leader], returns[self.leader], values[self.leader])
+            self.policies[self.leader].trpo_update(*argvs)
         else:
-            for i in range(self.world.n_adv):
+            norm_advs = copy.deepcopy(advs)
+            for i in range(len(self.world.agents)):
                 if self.ob_normalization:
                     self.policies[i].pi.ob_rms.update(obs[i])
                     self.policies[i].oldpi.ob_rms.update(obs[i])
-                atarg[i] = np.clip((atarg[i] - np.mean(atarg[i])) / np.std(atarg[i]), -5., 5.)
+                norm_advs[i] = (advs[i]-np.mean(advs[i]))/np.std(advs[i])
+                norm_advs[i] = np.clip(norm_advs[i], -5., 5.)
                 self.policies[i].assign_old_eq_new()
                 self.policies[i].vfupdate(obs[i], returns[i], values[i])
-                self.policies[i].trpo_update(obs[i], actions[i], atarg[i], returns[i], values[i])
-
-        if n_agt > 0:
-            if self.agt == 'cooperative':
-                argvs = []
-                for i in range(n_adv, self.world.n):
-                    if self.ob_normalization:
-                        self.policies[i].pi.ob_rms.update(obs[i])
-                        self.policies[i].oldpi.ob_rms.update(obs[i])
-                    self.policies[i].reinitial_estimates()
-                    self.policies[i].assign_old_eq_new()
-                    self.policies[i].vfupdate(obs[i], returns[i], values[i])
-                    atarg[i] = np.clip((atarg[i] - np.mean(atarg[n_adv:])) / np.std(atarg[n_adv:]), -5., 5.)
-                    argvs.append((obs[i], actions[i], atarg[i], returns[i], values[i]))
-
-                for itr in range(self.admm_iter[1]):
-                    # edge = agt_edges[np.random.choice(range(len(agt_edges)))]
-                    edge = agt_edges[itr % len(agt_edges)]
-                    q = np.where(edge != 0)[0]
-                    k, j = q[0], q[-1]
-                    nk, nj = k-n_adv, j-n_adv
-                    # Update Agent k and j
-                    self.policies[k].update(*argvs[nk])
-                    self.policies[j].update(*argvs[nj])
-                    ratio_k, multipliers_k = self.policies[k].info_to_exchange(obs[k], actions[k], nj)
-                    ratio_j, multipliers_j = self.policies[j].info_to_exchange(obs[j], actions[j], nk)
-                    self.policies[k].exchange(obs[k], actions[k], edge[k], ratio_j, multipliers_j, nj)
-                    self.policies[j].exchange(obs[j], actions[j], edge[j], ratio_k, multipliers_k, nk)
-            elif self.agt == 'centralized':
-                if self.ob_normalization:
-                    self.policies[n_adv].pi.ob_rms.update(obs[n_adv])
-                    self.policies[n_adv].oldpi.ob_rms.update(obs[n_adv])
-                atarg[n_adv] = np.clip((atarg[n_adv] - np.mean(atarg[n_adv])) / np.std(atarg[n_adv]), -5., 5.)
-                self.policies[n_adv].assign_old_eq_new()
-                self.policies[n_adv].vfupdate(obs[n_adv], returns[n_adv], values[n_adv])
-                self.policies[n_adv].trpo_update(obs[n_adv], actions[n_adv], atarg[n_adv], returns[n_adv], values[n_adv])
-            else:
-                for i in range(n_adv, self.world.n):
-                    if self.ob_normalization:
-                        self.policies[i].pi.ob_rms.update(obs[i])
-                        self.policies[i].oldpi.ob_rms.update(obs[i])
-                    atarg[i] = np.clip((atarg[i] - np.mean(atarg[i])) / np.std(atarg[i]), -5., 5.)
-                    self.policies[i].assign_old_eq_new()
-                    self.policies[i].vfupdate(obs[i], returns[i], values[i])
-                    self.policies[i].trpo_update(obs[i], actions[i], atarg[i], returns[i], values[i])
-
+                self.policies[i].trpo_update(obs[i], actions[i], norm_advs[i], returns[i], values[i])

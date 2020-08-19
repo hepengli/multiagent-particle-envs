@@ -43,11 +43,10 @@ class ClipActionsWrapper(gym.Wrapper):
 
 class MATRPO(object):
     """ Paralell CPO algorithm """
-    def __init__(self, env_id, nsteps, network, admm_iter, gamma=0.995, lam=0.95, max_kl=0.01, ent_coef=0.0, 
-                 vf_stepsize=3e-4, vf_iters=3, cg_damping=1e-2, cg_iters=10, lbfgs_iters=10, rho=1.0, num_env=1, 
+    def __init__(self, env_id, nsteps, network, num_env, admm_iter, mode='matrpo', gamma=0.995, lam=0.95, max_kl=0.001, 
+                 ent_coef=0.0, vf_stepsize=3e-4, vf_iters=3, cg_damping=1e-2, cg_iters=10, lbfgs_iters=10, rho=1.0, 
                  reward_scale=1.0, finite=True, seed=None, load_path=None, logger_dir=None, force_dummy=False, 
-                 ob_normalization=False, ob_clip_range=np.inf, info_keywords=(), adv='cooperative', agt='cooperative', 
-                 **network_kwargs):
+                 ob_normalization=False, ob_clip_range=np.inf, info_keywords=(), **network_kwargs):
         # Setup stuff
         set_global_seeds(seed)
         np.set_printoptions(precision=5)
@@ -55,36 +54,23 @@ class MATRPO(object):
         # Scenario
         scenario = scenarios.load('{}.py'.format(env_id)).Scenario()
         world = scenario.make_world()
-
-        if hasattr(world.agents[0], 'adversary'):
-            good_agents = [agent for agent in world.agents if not agent.adversary]
-            world.n_agt = len(good_agents)
-            world.n_adv = len(world.agents) - world.n_agt
-            world.n = world.n_agt+world.n_adv
-        else:
-            world.n_agt = 0
-            world.n_adv = len(world.agents)
-            world.n = world.n_agt+world.n_adv
-        self.n_agt, self.n_adv, self.n = world.n_agt, world.n_adv, world.n
         nbatch = num_env * nsteps
 
         # Environment
-        self.env = env = self.make_vec_env(env_id, seed, logger_dir=logger_dir, num_env=num_env, reward_scale=reward_scale,
-                                            force_dummy=force_dummy, info_keywords=info_keywords)
-        self.test_env = self.make_env(env_id, seed, reward_scale=reward_scale, info_keywords=info_keywords)
+        self.env = env = self.make_vec_env(env_id, seed, num_env, logger_dir, reward_scale, force_dummy, info_keywords)
+        self.test_env = self.make_env(env_id, seed, logger_dir, reward_scale, info_keywords)
 
         # create interactive policies for each agent
-        self.policies = Policy(env=env, world=world, network=network, nsteps=nbatch, rho=rho, max_kl=max_kl, ent_coef=ent_coef, 
-                               vf_stepsize=vf_stepsize, vf_iters=vf_iters, cg_damping=cg_damping, cg_iters=cg_iters, lbfgs_iters=lbfgs_iters, 
-                               ob_clip_range=ob_clip_range, load_path=load_path, adv=adv, agt=agt, **network_kwargs)
+        self.policies = policies = Policy(env, world, network, nbatch, mode, rho, max_kl, ent_coef, vf_stepsize, vf_iters,
+                                          cg_damping, cg_iters, lbfgs_iters, ob_clip_range, load_path,  **network_kwargs)
 
         # model
-        self.model = model = Model(env=env, world=world, policies=self.policies, admm_iter=admm_iter, adv=adv, agt=agt, ob_normalization=ob_normalization)
+        self.model = model = Model(env, world, policies, admm_iter, mode, ob_normalization)
 
         # runner
-        if num_env > 1: self.runner = Runner(env=env, world=world, model=model, nsteps=nsteps, gamma=gamma, lam=lam, finite=finite)
+        if num_env > 1: self.runner = Runner(env, world, model, nsteps, gamma, lam, finite)
 
-    def make_env(self, env_id, seed, logger_dir=None, reward_scale=1.0, mpi_rank=0, subrank=0, info_keywords=()):
+    def make_env(self, env_id, seed, logger_dir, reward_scale, info_keywords, mpi_rank=0, subrank=0):
         """
         Create a wrapped, monitored gym.Env for safety.
         """
@@ -112,7 +98,7 @@ class MATRPO(object):
             env = RewardScaler(env, reward_scale)
         return env
 
-    def make_vec_env(self, env_id, seed, logger_dir=None, reward_scale=1.0, num_env=1, force_dummy=False, info_keywords=()):
+    def make_vec_env(self, env_id, seed, num_env, logger_dir, reward_scale, force_dummy, info_keywords):
         """
         Create a wrapped, monitored SubprocVecEnv for Atari and MuJoCo.
         """
@@ -122,12 +108,11 @@ class MATRPO(object):
             return lambda: self.make_env(
                 env_id,
                 seed,
-                logger_dir=logger_dir,
-                reward_scale=reward_scale,
+                logger_dir,
+                reward_scale,
+                info_keywords,
                 mpi_rank=mpi_rank,
-                subrank=rank,
-                info_keywords=info_keywords,
-            )
+                subrank=rank)
 
         if not force_dummy and num_env > 1:
             return SubprocVecEnv([make_thunk(i) for i in range(num_env)])
@@ -136,7 +121,7 @@ class MATRPO(object):
 
 
     def play(self):
-        import time
+        self.model.test = True
         for _ in range(10):
             obs_n = self.test_env.reset()
             while True:
@@ -155,3 +140,5 @@ class MATRPO(object):
                 if done_n:
                     print('done!')
                     break
+
+        self.model.test = False

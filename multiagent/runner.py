@@ -71,7 +71,7 @@ class Runner(AbstractEnvRunner):
         # discount/bootstrap off value fn
         mb_returns = np.zeros_like(mb_rewards)
         mb_advs = np.zeros_like(mb_rewards)
-        for i in range(self.world.n):
+        for i in range(len(self.world.agents)):
             lastgaelam = 0
             for t in reversed(range(self.nsteps)):
                 if t == self.nsteps - 1:

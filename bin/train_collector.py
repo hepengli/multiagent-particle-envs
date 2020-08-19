@@ -21,9 +21,8 @@ agents = MATRPO(
     load_path=load_path,
     logger_dir=reward_path,
     seed=seed,
-    max_kl=0.001,
     info_keywords=tuple('r{}'.format(i) for i in range(8)),
-    adv='cooperative',
+    mode='matrpo',
     **network_kwargs)
 
 # training

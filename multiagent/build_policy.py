@@ -3,9 +3,8 @@ import tensorflow as tf
 from multiagent.agent_model import AgentModel
 from gym import spaces
 
-def Policy(env, world, network, nsteps, rho, max_kl, ent_coef, vf_stepsize, vf_iters,
-           cg_damping, cg_iters, lbfgs_iters, ob_clip_range, load_path, adv, agt, 
-           **network_kwargs):
+def Policy(env, world, network, nbatch, mode, rho, max_kl, ent_coef, vf_stepsize, vf_iters,
+           cg_damping, cg_iters, lbfgs_iters, ob_clip_range, load_path, **network_kwargs):
     policies = []
     for index, agent in enumerate(world.agents):
         agent = world.agents[index]
@@ -14,21 +13,13 @@ def Policy(env, world, network, nsteps, rho, max_kl, ent_coef, vf_stepsize, vf_i
         agent.comms = agent.comm_matrix[:,index]
         agent.neighbors = [id for id in np.where(agent.comm_matrix!=0)[1] if id != index]
         agent.observation_space = env.observation_space[index]
-        if index < world.n_adv:
-            if adv == 'cooperative':
-                agent = cooperative_action_space(agent, env, world)
-            elif adv == 'centralized':
-                agent = cooperative_action_space(agent, env, world)
-            elif adv == 'independent':
-                agent = independent_action_space(agent, env, world)
+        if mode == 'matrpo':
+            agent = cooperative_action_space(agent, env, world)
+        elif mode == 'trpo':
+            agent = independent_action_space(agent, env, world)
         else:
-            if agt == 'cooperative':
-                agent = cooperative_action_space(agent, env, world)
-            elif agt == 'centralized':
-                agent = cooperative_action_space(agent, env, world)
-            elif agt == 'independent':
-                agent = independent_action_space(agent, env, world)
-        model = AgentModel(agent, network, nsteps, rho, max_kl, ent_coef, vf_stepsize, vf_iters,
+            agent = cooperative_action_space(agent, env, world)
+        model = AgentModel(agent, network, nbatch, rho, max_kl, ent_coef, vf_stepsize, vf_iters,
                            cg_damping, cg_iters, lbfgs_iters, ob_clip_range, load_path, **network_kwargs)
         policies.append(model)
     

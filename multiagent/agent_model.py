@@ -18,13 +18,13 @@ from contextlib import contextmanager
 MPI = None
 
 class AgentModel(tf.Module):
-    def __init__(self, agent, network, nsteps, rho, max_kl, ent_coef, vf_stepsize, vf_iters,
+    def __init__(self, agent, network, nbatch, rho, max_kl, ent_coef, vf_stepsize, vf_iters,
                  cg_damping, cg_iters, lbfgs_iters, ob_clip_range, load_path, **network_kwargs):
         super(AgentModel, self).__init__(name='MATRPOModel')
         self.agent = agent
         self.comms = agent.comms
         self.neighbors = agent.neighbors
-        self.nsteps = nsteps
+        self.nbatch = nbatch
         self.rho = rho
         self.max_kl = max_kl
         self.ent_coef = ent_coef
@@ -59,8 +59,8 @@ class AgentModel(tf.Module):
                 self.oldpi = oldpi = PolicyWithValue(ob_space, ob_clip_range, ac_space, old_pi_policy_network, old_pi_value_network)
 
         self.comm_matrix = agent.comm_matrix.copy()
-        self.estimates = np.zeros([agent.nmates, nsteps], dtype=np.float32)
-        self.multipliers = np.ones([agent.nmates, nsteps]).astype(np.float32)
+        self.estimates = np.zeros([agent.nmates, nbatch], dtype=np.float32)
+        self.multipliers = np.ones([agent.nmates, nbatch]).astype(np.float32)
 
         pi_var_list = pi_policy_network.trainable_variables + list(pi.pdtype.trainable_variables)
         old_pi_var_list = old_pi_policy_network.trainable_variables + list(oldpi.pdtype.trainable_variables)
@@ -93,8 +93,8 @@ class AgentModel(tf.Module):
         self.shapes = [var.get_shape().as_list() for var in pi_var_list]
 
     def reinitial_estimates(self):
-        self.estimates = np.zeros([self.agent.nmates, self.nsteps], dtype=np.float32)
-        self.multipliers = np.ones([self.agent.nmates, self.nsteps]).astype(np.float32)
+        self.estimates = np.zeros([self.agent.nmates, self.nbatch], dtype=np.float32)
+        self.multipliers = np.ones([self.agent.nmates, self.nbatch]).astype(np.float32)
 
     def assign_old_eq_new(self):
         for pi_var, old_pi_var in zip(self.pi_var_list, self.old_pi_var_list):
@@ -127,7 +127,6 @@ class AgentModel(tf.Module):
 
         return out
 
-
     @tf.function
     def compute_losses(self, ob, ac, atarg, estimates, multipliers):
         old_policy_latent = self.oldpi.policy_network(ob)
@@ -148,9 +147,8 @@ class AgentModel(tf.Module):
                    0.5 * self.rho * tf.reduce_mean(tf.square(syncerr))
         lagrangeloss = - surrgain - entbonus + syncloss
         mean_syncerr = tf.reduce_mean(tf.square(syncerr))
-        losses = [lagrangeloss, surrgain, mean_syncerr, meankl, entbonus, meanent]
+        losses = [lagrangeloss, surrgain, mean_syncerr, meankl, entbonus]
         return losses
-
 
     #ob shape should be [batch_size, ob_dim], merged nenv
     #ret shape should be [batch_size]
@@ -160,7 +158,6 @@ class AgentModel(tf.Module):
             pi_vf = self.pi.value(ob)
             vferr = tf.reduce_mean(tf.square(pi_vf - ret))
         return U.flatgrad(tape.gradient(vferr, self.vf_var_list), self.vf_var_list)
-
 
     @tf.function
     def compute_fvp(self, flat_tangents, ob, ac, atarg):
@@ -180,7 +177,6 @@ class AgentModel(tf.Module):
         fvp = U.flatgrad(acc.jvp(backward), self.pi_var_list)
 
         return fvp
-
 
     @tf.function
     def compute_jjvp(self, flat_tangents, ob, ac, atarg):
@@ -206,7 +202,6 @@ class AgentModel(tf.Module):
 
         return jjvp
 
-
     @tf.function
     def compute_vjp(self, ob, ac, atarg, flat_tangents):
         with tf.GradientTape() as tape:
@@ -219,7 +214,6 @@ class AgentModel(tf.Module):
         vjp = tape.jacobian(vpr, self.pi_var_list)
 
         return U.flatgrad(vjp, self.pi_var_list)
-
 
     @tf.function
     def compute_jvp(self, ob, ac, atarg, flat_tangents):
@@ -295,7 +289,6 @@ class AgentModel(tf.Module):
         fvp = U.flatgrad(hessians_products, self.pi_var_list)
         return fvp
 
-
     def reshape_from_flat(self, flat_tangents):
         shapes = [var.get_shape().as_list() for var in self.pi_var_list]
         start = 0
@@ -348,7 +341,7 @@ class AgentModel(tf.Module):
             v = atarg - self.comms.dot(self.multipliers[self.neighbors]) \
                 + self.rho * self.comms.dot(self.estimates[self.neighbors])
             g = self.allmean(self.compute_vjp(*args, v).numpy())
-        lossbefore = self.allmean(np.array(self.compute_losses(*args, *synargs)))
+        lossesbefore = self.allmean(np.array(self.compute_losses(*args, *synargs)))
 
         if np.allclose(g, 0):
             # logger.log("Got zero gradient. not updating")
@@ -362,26 +355,24 @@ class AgentModel(tf.Module):
             logger.log("---------------- {} ----------------".format(self.agent.name))
             # logger.log("lagrange multiplier:", lm, "gnorm:", np.linalg.norm(g))
             fullstep = stepdir / lm
-            expectedimprove = g.dot(fullstep)
-            lagrangebefore, surrbefore, syncbefore, klbefore, entbonusbefore, meanentbefore = lossbefore
+            # expectedimprove = g.dot(fullstep)
+            lagrangebefore, surrbefore, *_ = lossesbefore
             stepsize = 1.0
             thbefore = self.get_flat()
             for _ in range(10):
                 thnew = thbefore + fullstep * stepsize
                 self.set_from_flat(thnew)
-                meanlosses = lagrange, surr, syncerr, kl, *_ = self.allmean(np.array(self.compute_losses(*args, *synargs)))
+                losses = lagrange, surr, syncerr, kl, _ = self.allmean(np.array(self.compute_losses(*args, *synargs)))
                 improve = lagrangebefore - lagrange
                 surr_improve = surr - surrbefore
                 logger.log("Surr_improve: %.5f Sync_error: %.5f"%(surr_improve, syncerr))
                 # logger.log("Expected: %.3f Actual: %.3f"%(expectedimprove, improve))
-                if not np.isfinite(meanlosses).all():
+                if not np.isfinite(losses).all():
                     logger.log("Got non-finite value of losses -- bad!")
                 elif kl > self.max_kl * 1.5:
                     logger.log("violated KL constraint. shrinking step.")
                 elif improve < 0:
                     logger.log("lagrange didn't improve. shrinking step.")
-                elif abs(surr_improve) > .5:
-                    logger.log("Got strange surrogate value. shrinking step.")
                 else:
                     logger.log("Stepsize OK!")
                     break
@@ -399,7 +390,6 @@ class AgentModel(tf.Module):
         def fisher_vector_product(p):
             return self.allmean(self.trpo_compute_fvp(p, *fvpargs).numpy()) + self.cg_damping * p
 
-        self.assign_new_eq_old() # set old parameter values to new parameter values
         with self.timed("computegrad"):
             *lossbefore, g = self.compute_lossandgrad(*args)
         lossbefore = self.allmean(np.array(lossbefore))
