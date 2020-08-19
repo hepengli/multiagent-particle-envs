@@ -369,11 +369,10 @@ class AgentModel(tf.Module):
             for _ in range(10):
                 thnew = thbefore + fullstep * stepsize
                 self.set_from_flat(thnew)
-                meanlosses = lagrange, surr, syncerr, kl, entbonus, meanent = self.allmean(np.array(self.compute_losses(*args, *synargs)))
+                meanlosses = lagrange, surr, syncerr, kl, *_ = self.allmean(np.array(self.compute_losses(*args, *synargs)))
                 improve = lagrangebefore - lagrange
                 surr_improve = surr - surrbefore
                 logger.log("Surr_improve: %.5f Sync_error: %.5f"%(surr_improve, syncerr))
-                # logger.log("Ent_bonus: %.5f Mean_ent: %.5f"%(entbonus, meanent))
                 # logger.log("Expected: %.3f Actual: %.3f"%(expectedimprove, improve))
                 if not np.isfinite(meanlosses).all():
                     logger.log("Got non-finite value of losses -- bad!")
@@ -381,6 +380,8 @@ class AgentModel(tf.Module):
                     logger.log("violated KL constraint. shrinking step.")
                 elif improve < 0:
                     logger.log("lagrange didn't improve. shrinking step.")
+                elif abs(surr_improve) > .5:
+                    logger.log("Got strange surrogate value. shrinking step.")
                 else:
                     logger.log("Stepsize OK!")
                     break

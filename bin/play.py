@@ -16,7 +16,7 @@ def main():
         num_env=1,
         admm_iter=[0,0],
         load_path=load_path,
-        adv='cooperative',
+        adv='centralized',
         network='mlp',
         **network_kwargs)
 
