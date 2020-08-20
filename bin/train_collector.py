@@ -18,7 +18,6 @@ agents = MATRPO(
     network='mlp',
     num_env=10,
     admm_iter=200,
-    ent_coef=0.1,
     load_path=load_path,
     logger_dir=reward_path,
     seed=seed,
