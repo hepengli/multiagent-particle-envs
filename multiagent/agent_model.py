@@ -209,6 +209,8 @@ class AgentModel(tf.Module):
             old_pd, _ = self.oldpi.pdtype.pdfromlatent(old_policy_latent)
             policy_latent = self.pi.policy_network(ob)
             pd, _ = self.pi.pdtype.pdfromlatent(policy_latent)
+            ent = - tf.exp(old_pd.logp(ac)) * (old_pd.logp(ac) + 1.)
+            flat_tangents += self.ent_coef * ent
             logratio = pd.logp(ac) - old_pd.logp(ac)
             vpr = tf.reduce_mean(flat_tangents * logratio)
         vjp = tape.jacobian(vpr, self.pi_var_list)
@@ -305,7 +307,8 @@ class AgentModel(tf.Module):
         old_pd, _ = self.oldpi.pdtype.pdfromlatent(old_policy_latent)
         policy_latent = self.pi.policy_network(ob)
         pd, _ = self.pi.pdtype.pdfromlatent(policy_latent)
-        logratio = (pd.logp(ac) - old_pd.logp(ac)).numpy()
+        logratio = pd.logp(ac) - old_pd.logp(ac)
+        logratio = tf.clip_by_value(logratio, -2., 2.).numpy()
         multiplier = self.multipliers[nb].copy()
 
         return logratio, multiplier
@@ -316,6 +319,7 @@ class AgentModel(tf.Module):
         policy_latent = self.pi.policy_network(ob)
         pd, _ = self.pi.pdtype.pdfromlatent(policy_latent)
         logratio = (pd.logp(ac) - old_pd.logp(ac)).numpy()
+        logratio = tf.clip_by_value(logratio, -2., 2.).numpy()
         multiplier = self.multipliers[nb].copy()
 
         v = 0.5 * (multiplier + nb_multipliers) + \
@@ -356,16 +360,17 @@ class AgentModel(tf.Module):
             # logger.log("lagrange multiplier:", lm, "gnorm:", np.linalg.norm(g))
             fullstep = stepdir / lm
             # expectedimprove = g.dot(fullstep)
-            lagrangebefore, surrbefore, *_ = lossesbefore
+            lagrangebefore, surrbefore, *_, entbefore = lossesbefore
             stepsize = 1.0
             thbefore = self.get_flat()
             for _ in range(10):
                 thnew = thbefore + fullstep * stepsize
                 self.set_from_flat(thnew)
-                losses = lagrange, surr, syncerr, kl, _ = self.allmean(np.array(self.compute_losses(*args, *synargs)))
+                losses = lagrange, surr, syncerr, kl, ent = self.allmean(np.array(self.compute_losses(*args, *synargs)))
                 improve = lagrangebefore - lagrange
                 surr_improve = surr - surrbefore
                 logger.log("Surr_improve: %.5f Sync_error: %.5f"%(surr_improve, syncerr))
+                logger.log("Entropy before: %.5f Entropy: %.5f"%(entbefore, ent))
                 # logger.log("Expected: %.3f Actual: %.3f"%(expectedimprove, improve))
                 if not np.isfinite(losses).all():
                     logger.log("Got non-finite value of losses -- bad!")

@@ -88,7 +88,6 @@ class Model(object):
                 self.policies[i].assign_old_eq_new()
                 self.policies[i].vfupdate(obs[i], returns[i], values[i])
                 norm_advs[i] = (advs[i]-np.mean(advs))/np.std(advs)
-                norm_advs[i] = np.clip(norm_advs[i], -5., 5.)
 
             argvs = tuple(zip(obs, actions, norm_advs, returns, values))
             for itr in range(self.admm_iter):
@@ -108,7 +107,6 @@ class Model(object):
                 self.policies[self.leader].pi.ob_rms.update(obs[self.leader])
                 self.policies[self.leader].oldpi.ob_rms.update(obs[self.leader])
             norm_advs = (advs[self.leader] - np.mean(advs[self.leader])) / np.std(advs[self.leader])
-            norm_advs = np.clip(norm_advs, -5., 5.)
             argvs = (obs[self.leader], actions[self.leader], norm_advs, returns[self.leader], values[self.leader])
             self.policies[self.leader].assign_old_eq_new()
             self.policies[self.leader].vfupdate(obs[self.leader], returns[self.leader], values[self.leader])
@@ -120,7 +118,6 @@ class Model(object):
                     self.policies[i].pi.ob_rms.update(obs[i])
                     self.policies[i].oldpi.ob_rms.update(obs[i])
                 norm_advs[i] = (advs[i]-np.mean(advs[i]))/np.std(advs[i])
-                norm_advs[i] = np.clip(norm_advs[i], -5., 5.)
                 self.policies[i].assign_old_eq_new()
                 self.policies[i].vfupdate(obs[i], returns[i], values[i])
                 self.policies[i].trpo_update(obs[i], actions[i], norm_advs[i], returns[i], values[i])
