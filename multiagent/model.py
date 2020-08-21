@@ -100,9 +100,6 @@ class Model(object):
                 self.policies[j].update(*argvs[j])
                 ratio_k, multipliers_k = self.policies[k].info_to_exchange(obs[k], actions[k], j)
                 ratio_j, multipliers_j = self.policies[j].info_to_exchange(obs[j], actions[j], k)
-                print(ratio_k)
-                print(ratio_j)
-                input()
                 self.policies[k].exchange(obs[k], actions[k], edge[k], ratio_j, multipliers_j, j)
                 self.policies[j].exchange(obs[j], actions[j], edge[j], ratio_k, multipliers_k, k)
         elif self.mode == 'central':
