@@ -19,8 +19,8 @@ class Scenario(BaseScenario):
         num_treasures = num_collectors
         num_walls = 0
         world.comm_matrix = toeplitz(
-            [1]+[0]*(num_agents-1), 
-            [1,-1]+[0]*(num_agents-1)
+            [1]+[0]*(num_agents-2), 
+            [1,-1]+[0]*(num_agents-2)
         ).astype(np.float32)
         # add agents
         world.agents = [Agent() for i in range(num_agents)]
