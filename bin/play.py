@@ -5,18 +5,18 @@ import gym
 from multiagent.matrpo import MATRPO
 
 def main():
-    seed = 1
+    seed = 3
     env_id = 'collector'
-    model = 'matrpo'
+    mode = 'central'
     network_kwargs = {'num_layers': 2, 'num_hidden': 128, 'activation': 'selu'}
-    load_path = '/home/lihepeng/Documents/Github/results/graphs/{}/{}/s{}'.format(env_id, model, seed)
+    load_path = '/home/lihepeng/Documents/Github/results/graphs/{}/{}/s{}'.format(env_id, mode, seed)
     agents = MATRPO(
         env_id=env_id,
         nsteps=1000,
         num_env=1,
         admm_iter=0,
         load_path=load_path,
-        mode='matrpo',
+        mode=mode,
         network='mlp',
         **network_kwargs)
 

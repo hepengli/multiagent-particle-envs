@@ -2,6 +2,7 @@ import numpy as np
 import seaborn as sns
 from multiagent.new_core import World, Agent, Landmark, Wall
 from multiagent.scenario import BaseScenario
+from scipy.linalg import toeplitz
 
 class Scenario(BaseScenario):
     def make_world(self):
@@ -17,16 +18,10 @@ class Scenario(BaseScenario):
             sns.color_palette(n_colors=num_deposits))
         num_treasures = num_collectors
         num_walls = 0
-        world.comm_matrix = np.array([
-            [1., 0., 0., 0., 0., 0., 0.,-1.],
-            [1.,-1., 0., 0., 0., 0., 0., 0.],
-            [0., 1.,-1., 0., 0., 0., 0., 0.],
-            [0., 0., 1.,-1., 0., 0., 0., 0.],
-            [0., 0., 0., 1.,-1. ,0., 0., 0.],
-            [0., 0., 0., 0., 1.,-1., 0., 0.],
-            [0., 0., 0., 0., 0., 1.,-1., 0.],
-            [0., 0., 0., 0., 0., 0., 1.,-1.],
-        ], dtype=np.float32)
+        world.comm_matrix = toeplitz(
+            [1]+[0]*(num_agents-1), 
+            [1,-1]+[0]*(num_agents-1)
+        ).astype(np.float32)
         # add agents
         world.agents = [Agent() for i in range(num_agents)]
         for i, agent in enumerate(world.agents):
@@ -79,8 +74,8 @@ class Scenario(BaseScenario):
 
     def reset_cached_rewards(self):
         self.global_collecting_reward = None
-        self.global_holding_reward = None
         self.global_deposit_reward = None
+        self.global_reward = None
 
     def post_step(self, world, np_random):
         self.reset_cached_rewards()
@@ -156,13 +151,14 @@ class Scenario(BaseScenario):
         return world.landmarks
 
     def reward(self, agent, world):
-        main_reward = (self.collector_reward(agent, world) if agent.collector
-                       else self.deposit_reward(agent, world))
+        self.calc_global_reward(world)
+        # main_reward = (self.collector_reward(agent, world) if agent.collector
+        #                else self.deposit_reward(agent, world))
 
-        # main_reward = 0.0
-        # if agent == self.collectors(world)[0]:
-        #     main_reward += sum([self.deposit_reward(a, world) for a in self.deposits(world)])
-        #     main_reward += sum([self.collector_reward(a, world) for a in self.collectors(world)])
+        main_reward = 0.0
+        if agent == self.collectors(world)[0]:
+            main_reward += sum([self.deposit_reward(a, world) for a in self.deposits(world)])
+            main_reward += sum([self.collector_reward(a, world) for a in self.collectors(world)])
 
         return main_reward
 
@@ -186,15 +182,21 @@ class Scenario(BaseScenario):
                 closest_avg_dist_vect = world.cached_dist_vect[closest_inds, agent.i].mean(axis=0)
                 rew -= 0.1 * np.linalg.norm(closest_avg_dist_vect)
 
-            # penalize by distance between collectors and closest relevant trrasures
-            for a in self.collectors(world):
-                dists_to_treasure = [world.cached_dist_mag[t.i, a.i]
-                                     for t in self.treasures(world)
-                                     if a.holding is None and t.alive]
-                if len(dists_to_treasure) > 0:
-                    rew -= 0.1 * min(dists_to_treasure)
+        rew += self.global_deposit_reward
 
-        rew += self.global_reward(world)
+        # Collecting rewards
+        for a in self.collectors(world):
+            if a.holding is None:
+                dists_to_treasure = [world.cached_dist_mag[t.i, a.i] for t in 
+                                        self.treasures(world) if t.alive]
+                rew -= 0.1 * min(dists_to_treasure)
+            else:
+                dists_to_deposit = [world.cached_dist_mag[a.i, d.i] for d in 
+                                    self.deposits(world) if d.d_i == a.holding]
+                rew -= 0.1 * min(dists_to_deposit)
+
+            rew += self.global_reward
+
 
         return rew
 
@@ -214,18 +216,19 @@ class Scenario(BaseScenario):
         # rew += self.global_reward(world)
         return rew
 
-    def global_reward(self, world):
+    def calc_global_reward(self, world):
         if self.global_deposit_reward is None:
             self.calc_global_deposit_reward(world)
         if self.global_collecting_reward is None:
             self.calc_global_collecting_reward(world)
-        return self.global_deposit_reward + self.global_collecting_reward
+        if self.global_reward is None:
+            self.global_reward = self.global_deposit_reward + self.global_collecting_reward
 
     def calc_global_collecting_reward(self, world):
         rew = 0
         for t in self.treasures(world):
             if t.alive:
-                rew += 10 * sum(self.is_collision(a, t, world)
+                rew += 5 * sum(self.is_collision(a, t, world)
                                for a in self.collectors(world)
                                if a.holding is None)
         self.global_collecting_reward = rew
@@ -234,7 +237,7 @@ class Scenario(BaseScenario):
         # reward deposits for getting treasure from collectors
         rew = 0
         for d in self.deposits(world):
-            rew += 10 * sum(self.is_collision(d, a, world)
+            rew += 5 * sum(self.is_collision(d, a, world)
                             for a in self.collectors(world)
                             if a.holding == d.d_i)
         self.global_deposit_reward = rew
@@ -276,6 +279,5 @@ class Scenario(BaseScenario):
             t = world.entities[i]
             obs.append(world.cached_dist_vect[i, agent.i])
             obs.append((np.arange(n_treasure_types) == t.type))
-            obs.append((np.arange(2) == t.alive))
 
         return np.concatenate(obs).astype(np.float32)
