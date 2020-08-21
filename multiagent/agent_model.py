@@ -370,7 +370,7 @@ class AgentModel(tf.Module):
                 improve = lagrangebefore - lagrange
                 surr_improve = surr - surrbefore
                 logger.log("Surr_improve: %.5f Sync_error: %.5f"%(surr_improve, syncerr))
-                logger.log("Entropy before: %.5f Entropy: %.5f"%(entbefore, ent))
+                # logger.log("Entropy before: %.5f Entropy: %.5f"%(entbefore, ent))
                 # logger.log("Expected: %.3f Actual: %.3f"%(expectedimprove, improve))
                 if not np.isfinite(losses).all():
                     logger.log("Got non-finite value of losses -- bad!")
