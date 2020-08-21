@@ -7,7 +7,7 @@ from multiagent.matrpo import MATRPO
 def main():
     seed = 3
     env_id = 'collector'
-    mode = 'central'
+    mode = 'matrpo'
     network_kwargs = {'num_layers': 2, 'num_hidden': 128, 'activation': 'selu'}
     load_path = '/home/lihepeng/Documents/Github/results/graphs/{}/{}/s{}'.format(env_id, mode, seed)
     agents = MATRPO(
