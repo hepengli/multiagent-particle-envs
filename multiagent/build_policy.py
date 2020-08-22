@@ -51,13 +51,13 @@ def cooperative_action_space(agent, env, world):
         # If all action spaces are discrete, simplify to MultiDiscrete action space
         if all([isinstance(ac_space, spaces.Discrete) for ac_space in all_action_spaces]):
             agent.action_space = spaces.MultiDiscrete([ac_space.n for ac_space in all_action_spaces])
-            agent.nmates = agent.action_space.nvec.size
+            agent.nmates = agent.action_size = agent.action_space.nvec.size
         else:
             agent.action_space = spaces.Tuple(all_action_spaces)
-            agent.nmates = agent.action_space.__len__()
+            agent.nmates = agent.action_size = agent.action_space.__len__()
     else:
         agent.action_space = all_action_spaces[0]
-        agent.nmates = 1
+        agent.nmates = agent.action_size = 1
     
     return agent
 
