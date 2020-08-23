@@ -307,8 +307,7 @@ class AgentModel(tf.Module):
         old_pd, _ = self.oldpi.pdtype.pdfromlatent(old_policy_latent)
         policy_latent = self.pi.policy_network(ob)
         pd, _ = self.pi.pdtype.pdfromlatent(policy_latent)
-        logratio = pd.logp(ac) - old_pd.logp(ac)
-        logratio = tf.clip_by_value(logratio, -2., 2.).numpy()
+        logratio = (pd.logp(ac) - old_pd.logp(ac)).numpy()
         multiplier = self.multipliers[nb].copy()
 
         return logratio, multiplier
@@ -319,7 +318,6 @@ class AgentModel(tf.Module):
         policy_latent = self.pi.policy_network(ob)
         pd, _ = self.pi.pdtype.pdfromlatent(policy_latent)
         logratio = (pd.logp(ac) - old_pd.logp(ac)).numpy()
-        logratio = tf.clip_by_value(logratio, -2., 2.).numpy()
         multiplier = self.multipliers[nb].copy()
 
         v = 0.5 * (multiplier + nb_multipliers) + \
