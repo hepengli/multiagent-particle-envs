@@ -7,7 +7,7 @@ from multiagent.matrpo import MATRPO
 from multiagent.plot import plot
 
 env_id = 'simple_spread'
-mode = 'trpo'
+mode = 'matrpo'
 seed = 3
 reward_path = '/home/lihepeng/Documents/Github/results/training/{}/{}/s{}'.format(env_id, mode, seed)
 load_path = '/home/lihepeng/Documents/Github/results/graphs/{}/{}/s{}'.format(env_id, mode, seed)
@@ -19,6 +19,7 @@ agents = MATRPO(
     nsteps=1000,
     admm_iter=50,
     network='mlp',
+    finite=False,
     load_path=load_path,
     logger_dir=reward_path,
     info_keywords=tuple('r{}'.format(i) for i in range(3)),
@@ -26,7 +27,7 @@ agents = MATRPO(
     **network_kwargs)
 
 # training
-total_timesteps = 200
+total_timesteps = 500
 for step in range(1, total_timesteps+1):
     actions, obs, returns, dones, values, advs, neglogpacs = agents.runner.run()
     agents.model.train(actions, obs, returns, dones, values, advs, neglogpacs)
