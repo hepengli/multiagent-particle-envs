@@ -86,11 +86,8 @@ class Scenario(BaseScenario):
             for l in world.landmarks:
                 dists = [np.sqrt(np.sum(np.square(a.state.p_pos - l.state.p_pos))) for a in world.agents]
                 rew -= 0.1 * min(dists)
-            print(agent.name, rew)
-        else:
-            print(agent.name, rew)
 
-        # rew -= sum([self.is_collision(a, agent) for a in world.agents if a != agent])
+        rew -= sum([self.is_collision(a, agent) for a in world.agents if a != agent])
 
         # # central
         # if agent == world.agents[0]:
