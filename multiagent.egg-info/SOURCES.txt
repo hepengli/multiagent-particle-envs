@@ -6,13 +6,13 @@ bin/learning_curves.py
 bin/play.py
 bin/spread_play.py
 bin/train_collector.py
-bin/train_predator_prey.py
 bin/train_spread.py
 multiagent/__init__.py
 multiagent/agent_model.py
 multiagent/build_policy.py
 multiagent/core.py
 multiagent/environment.py
+multiagent/finer_agent_model.py
 multiagent/lbfgs.py
 multiagent/matrpo.py
 multiagent/model.py

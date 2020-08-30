@@ -1,6 +1,7 @@
 import numpy as np
 from multiagent.core import World, Agent, Landmark
 from multiagent.scenario import BaseScenario
+from scipy.linalg import toeplitz
 
 
 class Scenario(BaseScenario):
@@ -10,12 +11,15 @@ class Scenario(BaseScenario):
         world.dim_c = 2
         num_agents = 3
         num_landmarks = 3
-        world.collaborative = True
         # add comm network
-        world.comm_matrix = np.array([
-            [1.,1.,0.],
-            [0.,1.,1.],
-        ], dtype=np.float32)
+        world.comm_matrix = toeplitz(
+            [1]+[0]*(num_agents-2), 
+            [1,-1]+[0]*(num_agents-2)
+        ).astype(np.float32)
+        world.comm_matrix = np.vstack([
+            world.comm_matrix,
+            np.array([[-1]+[0]*(num_agents-2)+[1]]),
+        ]).astype(np.float32)
         # add agents
         world.agents = [Agent() for i in range(num_agents)]
         for i, agent in enumerate(world.agents):
@@ -77,18 +81,26 @@ class Scenario(BaseScenario):
     def reward(self, agent, world):
         # Agents are rewarded based on minimum agent distance to each landmark, penalized for collisions
         rew = 0
-        if agent == world.agents[2]:
+        # independent
+        if agent == world.agents[0]:
             for l in world.landmarks:
                 dists = [np.sqrt(np.sum(np.square(a.state.p_pos - l.state.p_pos))) for a in world.agents]
                 rew -= 0.1 * min(dists)
+            print(agent.name, rew)
+        else:
+            print(agent.name, rew)
 
-        if agent.collide:
-            for a in world.agents: 
-                if a == agent: 
-                    continue
-                if self.is_collision(a, agent):
-                    assert a != agent
-                    rew -= 1.0
+        # rew -= sum([self.is_collision(a, agent) for a in world.agents if a != agent])
+
+        # # central
+        # if agent == world.agents[0]:
+        #     for l in world.landmarks:
+        #         dists = [np.sqrt(np.sum(np.square(a.state.p_pos - l.state.p_pos))) for a in world.agents]
+        #         rew -= 0.1 * min(dists)
+
+        #     for agent in world.agents:
+        #         rew -= sum([self.is_collision(a, agent) for a in world.agents if a != agent])
+
         return rew
 
     def observation(self, agent, world):

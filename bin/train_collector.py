@@ -7,21 +7,21 @@ from multiagent.matrpo import MATRPO
 from multiagent.plot import plot
 
 env_id = 'collector'
-mode = 'matrpo'
+mode = 'central'
 seed = 3
 reward_path = '/home/lihepeng/Documents/Github/results/training/{}/{}/s{}'.format(env_id, mode, seed)
 load_path = '/home/lihepeng/Documents/Github/results/graphs/{}/{}/s{}'.format(env_id, mode, seed)
-network_kwargs = {'num_layers': 2, 'num_hidden': 128, 'activation': 'selu'}
+network_kwargs = {'num_layers': 2, 'num_hidden': 256, 'activation': 'selu'}
 agents = MATRPO(
     env_id=env_id,
     seed=seed,
     num_env=10,
     nsteps=1000,
-    admm_iter=200,
+    admm_iter=300,
     network='mlp',
     load_path=load_path,
     logger_dir=reward_path,
-    info_keywords=tuple('r{}'.format(i) for i in range(8)),
+    info_keywords=tuple('r{}'.format(i) for i in range(12)),
     mode=mode,
     **network_kwargs)
 

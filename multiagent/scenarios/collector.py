@@ -156,13 +156,13 @@ class Scenario(BaseScenario):
 
     def reward(self, agent, world):
         self.calc_global_reward(world)
-        main_reward = (self.collector_reward(agent, world) if agent.collector
-                       else self.deposit_reward(agent, world))
+        # main_reward = (self.collector_reward(agent, world) if agent.collector
+        #                else self.deposit_reward(agent, world))
 
-        # main_reward = 0.0
-        # if agent == self.collectors(world)[0]:
-        #     main_reward += sum([self.deposit_reward(a, world) for a in self.deposits(world)])
-        #     main_reward += sum([self.collector_reward(a, world) for a in self.collectors(world)])
+        main_reward = 0.0
+        if agent == self.collectors(world)[0]:
+            main_reward += sum([self.deposit_reward(a, world) for a in self.deposits(world)])
+            main_reward += sum([self.collector_reward(a, world) for a in self.collectors(world)])
 
         return main_reward
 
@@ -176,7 +176,7 @@ class Scenario(BaseScenario):
             if len(dists_to_holding) > 0:
                 rew -= 0.1 * min(dists_to_holding)
             else:
-                n_visible = 7
+                n_visible = len(world.agents) - 1
                 # get positions of all entities in this agent's reference frame
                 other_agent_inds = [a.i for a in world.agents if (a is not agent and a.collector)]
                 closest_agents = sorted(
@@ -258,7 +258,7 @@ class Scenario(BaseScenario):
         return np.concatenate(encoding)
 
     def observation(self, agent, world):
-        n_visible = 7  # number of other agents and treasures visible to each agent
+        n_visible = len(world.agents) - 1  # number of other agents and treasures visible to each agent
         # get positions of all entities in this agent's reference frame
         other_agents = [a.i for a in world.agents if a is not agent]
         closest_agents = sorted(
