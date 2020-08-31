@@ -40,6 +40,5 @@ multiagent/scenarios/simple_push.py
 multiagent/scenarios/simple_reference.py
 multiagent/scenarios/simple_speaker_listener.py
 multiagent/scenarios/simple_spread.py
-multiagent/scenarios/simple_spread_6.py
 multiagent/scenarios/simple_tag.py
 multiagent/scenarios/simple_world_comm.py

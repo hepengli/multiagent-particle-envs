@@ -59,8 +59,8 @@ class AgentModel(tf.Module):
                 self.oldpi = oldpi = PolicyWithValue(ob_space, ob_clip_range, ac_space, old_pi_policy_network, old_pi_value_network)
 
         self.comm_matrix = agent.comm_matrix.copy()
-        self.estimates = np.zeros([agent.nmates, nbatch], dtype=np.float32)
-        self.multipliers = np.ones([agent.nmates, nbatch]).astype(np.float32)
+        self.estimates = np.zeros([agent.nmates, agent.action_size, nbatch], dtype=np.float32)
+        self.multipliers = np.ones([agent.nmates, agent.action_size, nbatch]).astype(np.float32)
 
         pi_var_list = pi_policy_network.trainable_variables + list(pi.pdtype.trainable_variables)
         old_pi_var_list = old_pi_policy_network.trainable_variables + list(oldpi.pdtype.trainable_variables)
@@ -93,8 +93,8 @@ class AgentModel(tf.Module):
         self.shapes = [var.get_shape().as_list() for var in pi_var_list]
 
     def reinitial_estimates(self):
-        self.estimates = np.zeros([self.agent.nmates, self.nbatch], dtype=np.float32)
-        self.multipliers = np.ones([self.agent.nmates, self.nbatch]).astype(np.float32)
+        self.estimates = np.zeros([self.agent.nmates, self.agent.action_size, self.nbatch], dtype=np.float32)
+        self.multipliers = np.ones([self.agent.nmates, self.agent.action_size, self.nbatch]).astype(np.float32)
 
     def assign_old_eq_new(self):
         for pi_var, old_pi_var in zip(self.pi_var_list, self.old_pi_var_list):
@@ -128,7 +128,7 @@ class AgentModel(tf.Module):
         return out
 
     @tf.function
-    def compute_losses(self, ob, ac, atarg, estimates, multipliers):
+    def compute_losses(self, ob, ac, atarg, comms, estimates, multipliers):
         old_policy_latent = self.oldpi.policy_network(ob)
         old_pd, _ = self.oldpi.pdtype.pdfromlatent(old_policy_latent)
         policy_latent = self.pi.policy_network(ob)
@@ -140,13 +140,14 @@ class AgentModel(tf.Module):
         entbonus = self.ent_coef * meanent
         ratio = tf.exp(pd.logp(ac) - old_pd.logp(ac))
         surrgain = tf.reduce_mean(ratio * atarg)
-        logratio = pd.logp(ac) - old_pd.logp(ac)
-        syncerr = tf.concat([[c*logratio] for c in self.comms], axis=0) - estimates
-        syncloss = tf.reduce_mean(tf.reduce_sum(multipliers * syncerr, axis=0) + \
-                                  0.5 * self.rho * tf.reduce_sum(tf.square(syncerr), axis=0), 
+        logratios = tf.concat([tf.expand_dims(pd.logp_n(ac, n)-old_pd.logp_n(ac, n), axis=0)
+                              for n in range(self.agent.action_size)], axis=0)
+        syncerr = tf.multiply(comms[:,None,None], tf.tile(logratios[None,:], [comms.shape[0],1,1])) - estimates
+        syncloss = tf.reduce_mean(tf.reduce_sum(multipliers * syncerr, axis=[0,1]) + \
+                                  0.5 * self.rho * tf.reduce_sum(tf.square(syncerr), axis=[0,1]), 
                                   axis=-1)
         lagrangeloss = - surrgain - entbonus + syncloss
-        mean_syncerr = tf.reduce_mean(tf.reduce_sum(tf.square(syncerr), axis=0), axis=-1)
+        mean_syncerr = tf.reduce_mean(tf.reduce_sum(tf.square(syncerr), axis=[0,1]), axis=-1)
         losses = [lagrangeloss, surrgain, mean_syncerr, meankl, entbonus]
         return losses
 
@@ -203,16 +204,18 @@ class AgentModel(tf.Module):
         return jjvp
 
     @tf.function
-    def compute_vjp(self, ob, ac, atarg, flat_tangents):
+    def compute_vjp(self, ob, ac, atarg, comms, estimates, multipliers):
         with tf.GradientTape() as tape:
             old_policy_latent = self.oldpi.policy_network(ob)
             old_pd, _ = self.oldpi.pdtype.pdfromlatent(old_policy_latent)
             policy_latent = self.pi.policy_network(ob)
             pd, _ = self.pi.pdtype.pdfromlatent(policy_latent)
-            ent = - tf.exp(old_pd.logp(ac)) * (old_pd.logp(ac) + 1.)
-            flat_tangents += self.ent_coef * ent
-            logratio = pd.logp(ac) - old_pd.logp(ac)
-            vpr = tf.reduce_mean(flat_tangents * logratio)
+            logratios = tf.concat([tf.expand_dims(pd.logp_n(ac, n)-old_pd.logp_n(ac, n), axis=0)
+                                   for n in range(self.agent.action_size)], axis=0)
+            v = tf.tile(atarg[None,:], [self.agent.action_size, 1]) - \
+                tf.tensordot(comms, multipliers, axes=[0,0]) + \
+                self.rho * tf.tensordot(comms, estimates, axes=[0,0])
+            vpr = tf.reduce_mean(tf.reduce_sum(tf.multiply(v, logratios), axis=0))
         vjp = tape.jacobian(vpr, self.pi_var_list)
 
         return U.flatgrad(vjp, self.pi_var_list)
@@ -268,7 +271,6 @@ class AgentModel(tf.Module):
         losses = [optimgain, meankl, entbonus, surrgain, meanent]
         return losses
 
-
     @tf.function
     def trpo_compute_fvp(self, flat_tangent, ob, ac, atarg):
         with tf.GradientTape() as outter_tape:
@@ -307,8 +309,9 @@ class AgentModel(tf.Module):
         old_pd, _ = self.oldpi.pdtype.pdfromlatent(old_policy_latent)
         policy_latent = self.pi.policy_network(ob)
         pd, _ = self.pi.pdtype.pdfromlatent(policy_latent)
-        logratio = (pd.logp(ac) - old_pd.logp(ac)).numpy()
         multiplier = self.multipliers[nb].copy()
+        logratio = tf.concat([tf.expand_dims(pd.logp_n(ac, n)-old_pd.logp_n(ac, n), axis=0)
+                              for n in range(self.agent.action_size)], axis=0).numpy()
 
         return logratio, multiplier
 
@@ -317,9 +320,9 @@ class AgentModel(tf.Module):
         old_pd, _ = self.oldpi.pdtype.pdfromlatent(old_policy_latent)
         policy_latent = self.pi.policy_network(ob)
         pd, _ = self.pi.pdtype.pdfromlatent(policy_latent)
-        logratio = (pd.logp(ac) - old_pd.logp(ac)).numpy()
         multiplier = self.multipliers[nb].copy()
-
+        logratio = tf.concat([tf.expand_dims(pd.logp_n(ac, n)-old_pd.logp_n(ac, n), axis=0)
+                              for n in range(self.agent.action_size)], axis=0).numpy()
         v = 0.5 * (multiplier + nb_multipliers) + \
             0.5 * self.rho * (comm * logratio + (-comm) * nb_logratio)
         self.estimates[nb] = (multiplier - v) / self.rho + comm * logratio
@@ -328,7 +331,7 @@ class AgentModel(tf.Module):
     def update(self, obs, actions, atarg, returns, vpredbefore):
         # Prepare data
         args = (obs, actions, atarg)
-        synargs = (self.estimates[self.neighbors], self.multipliers[self.neighbors])
+        synargs = (self.comms, self.estimates[self.neighbors], self.multipliers[self.neighbors])
         # Sampling every 5
         fvpargs = [arr[::5] for arr in args]
 
@@ -340,9 +343,7 @@ class AgentModel(tf.Module):
             return fvp + self.cg_damping * p
 
         with self.timed("computegrad"):
-            v = atarg - self.comms.dot(self.multipliers[self.neighbors]) \
-                + self.rho * self.comms.dot(self.estimates[self.neighbors])
-            g = self.allmean(self.compute_vjp(*args, v).numpy())
+            g = self.allmean(self.compute_vjp(*args, *synargs).numpy())
         lossesbefore = self.allmean(np.array(self.compute_losses(*args, *synargs)))
 
         if np.allclose(g, 0):
