@@ -9,8 +9,8 @@ class Scenario(BaseScenario):
         world = World()
         # set any world properties first
         world.dim_c = 2
-        num_agents = 6
-        num_landmarks = 6
+        num_agents = 3
+        num_landmarks = 3
         # add comm network
         world.comm_matrix = toeplitz(
             [1]+[0]*(num_agents-2), 
@@ -52,6 +52,8 @@ class Scenario(BaseScenario):
         for i, landmark in enumerate(world.landmarks):
             landmark.state.p_pos = np.random.uniform(-1, +1, world.dim_p)
             landmark.state.p_vel = np.zeros(world.dim_p)
+        # reset timestep counter
+        world.t = 0
 
     def benchmark_data(self, agent, world):
         rew = 0
@@ -118,9 +120,9 @@ class Scenario(BaseScenario):
             comm.append(other.state.c)
             other_pos.append(other.state.p_pos - agent.state.p_pos)
             other_vel.append(other.state.p_vel)
-        # ob = np.concatenate([agent.state.p_vel] + [agent.state.p_pos] + entity_pos + other_pos)
-        # cetral
-        ob = np.concatenate([agent.state.p_vel] + [agent.state.p_pos] + entity_pos + other_pos + other_vel)
+        ob = np.concatenate([np.array([world.t/100])] + [agent.state.p_vel] + [agent.state.p_pos] + entity_pos + other_pos)
+        # # cetral
+        # ob = np.concatenate([agent.state.p_vel] + [agent.state.p_pos] + entity_pos + other_pos + other_vel)
 
 
         return ob.astype(np.float32)

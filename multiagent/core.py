@@ -115,6 +115,8 @@ class World(object):
         self.dim_color = 3
         # simulation timestep
         self.dt = 0.1
+        # timestep counter
+        self.t = 0
         # physical damping
         self.damping = 0.25
         # contact response parameters
@@ -138,6 +140,8 @@ class World(object):
 
     # update state of the world
     def step(self):
+        # timestep counter
+        self.t += 1
         # set actions for scripted agents 
         for agent in self.scripted_agents:
             agent.action = agent.action_callback(agent, self)
