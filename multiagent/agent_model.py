@@ -406,7 +406,7 @@ class AgentModel(tf.Module):
                 stepdir = cg(fisher_vector_product, g, cg_iters=self.cg_iters)
             assert np.isfinite(stepdir).all()
             shs = .5*stepdir.dot(fisher_vector_product(stepdir))
-            lm = np.sqrt(shs / (self.max_kl*self.agent.action_size))
+            lm = np.sqrt(shs / self.max_kl)
             logger.log("lagrange multiplier:", lm, "gnorm:", np.linalg.norm(g))
             fullstep = stepdir / lm
             expectedimprove = g.dot(fullstep)
@@ -421,7 +421,7 @@ class AgentModel(tf.Module):
                 logger.log("Expected: %.3f Actual: %.3f"%(expectedimprove, improve))
                 if not np.isfinite(meanlosses).all():
                     logger.log("Got non-finite value of losses -- bad!")
-                elif kl > self.max_kl*self.agent.action_size * 1.5:
+                elif kl > self.max_kl * 1.5:
                     logger.log("violated KL constraint. shrinking step.")
                 elif improve < 0:
                     logger.log("surrogate didn't improve. shrinking step.")

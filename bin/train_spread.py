@@ -6,8 +6,8 @@ from baselines.bench.monitor import load_results
 from multiagent.matrpo import MATRPO
 from multiagent.plot import plot
 
-seed = 6
-mode = 'matrpo'
+seed = 2
+mode = 'central'
 env_id = 'simple_spread'
 reward_path = '/home/lihepeng/Documents/Github/results/training/{}/{}/s{}'.format(env_id, mode, seed)
 load_path = '/home/lihepeng/Documents/Github/results/graphs/{}/{}/s{}'.format(env_id, mode, seed)
@@ -21,9 +21,10 @@ agents = MATRPO(
     # ob_normalization=True,
     network='mlp',
     finite=False,
+    max_kl=0.006,
     load_path=load_path,
     logger_dir=reward_path,
-    info_keywords=tuple('r{}'.format(i) for i in range(3)),
+    info_keywords=tuple('r{}'.format(i) for i in range(6)),
     mode=mode,
     **network_kwargs)
 

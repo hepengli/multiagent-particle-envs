@@ -156,13 +156,13 @@ class Scenario(BaseScenario):
 
     def reward(self, agent, world):
         self.calc_global_reward(world)
-        main_reward = (self.collector_reward(agent, world) if agent.collector
-                       else self.deposit_reward(agent, world))
+        # main_reward = (self.collector_reward(agent, world) if agent.collector
+        #                else self.deposit_reward(agent, world))
 
-        # main_reward = 0.0
-        # if agent == self.collectors(world)[0]:
-        #     main_reward += sum([self.deposit_reward(a, world) for a in self.deposits(world)])
-        #     main_reward += sum([self.collector_reward(a, world) for a in self.collectors(world)])
+        main_reward = 0.0
+        if agent == self.collectors(world)[0]:
+            main_reward += sum([self.deposit_reward(a, world) for a in self.deposits(world)])
+            main_reward += sum([self.collector_reward(a, world) for a in self.collectors(world)])
 
         return main_reward
 
