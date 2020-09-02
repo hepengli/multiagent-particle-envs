@@ -3,25 +3,25 @@ import seaborn as sns
 import matplotlib.pyplot as plt
 from baselines.bench.monitor import load_results
 
-def get_training_curve(model, num_agents=3):
-    env_id = 'simple_spread_{}'.format(num_agents)
+def get_training_curve(env, model, num_agents):
+    env_id = '{}_{}'.format(env, num_agents)
     agents = ['r{}'.format(i) for i in range(num_agents)]
     seeds = [1,2,3,4,5]
     results = []
     for seed in seeds:
         reward_path = '/home/lihepeng/Documents/Github/results/training/{}/{}/s{}'.format(env_id, model, seed)
         df_train = load_results(reward_path)
-        data = df_train[agents].mean(axis=1).values
+        data = df_train[agents].sum(axis=1).values
         data = np.mean(data.reshape(-1, 100), axis=1)
         results.append(data)
 
     return np.array(results)
 
-xdata = np.arange(200)
-models = ['ctrpo','matrpo','trpo']
+xdata = np.arange(500)
+models = ['central','matrpo','trpo']
 results = []
 for model in models:
-    results.append(get_training_curve(model, num_agents=3))
+    results.append(get_training_curve('collector', model, num_agents=8))
 
 fig = plt.figure()
 sns.tsplot(time=xdata, data=results[0], color='r', linestyle='-', legend=True)

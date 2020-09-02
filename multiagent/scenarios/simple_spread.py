@@ -83,22 +83,22 @@ class Scenario(BaseScenario):
     def reward(self, agent, world):
         # Agents are rewarded based on minimum agent distance to each landmark, penalized for collisions
         rew = 0
-        # # independent
-        # if agent == world.agents[0]:
-        #     for l in world.landmarks:
-        #         dists = [np.sqrt(np.sum(np.square(a.state.p_pos - l.state.p_pos))) for a in world.agents]
-        #         rew -= min(dists)
-
-        # rew -= sum([self.is_collision(a, agent) for a in world.agents if a != agent])
-
-        # central
+        # independent
         if agent == world.agents[0]:
             for l in world.landmarks:
                 dists = [np.sqrt(np.sum(np.square(a.state.p_pos - l.state.p_pos))) for a in world.agents]
                 rew -= min(dists)
 
-            for agent in world.agents:
-                rew -= sum([self.is_collision(a, agent) for a in world.agents if a != agent])
+        rew -= sum([self.is_collision(a, agent) for a in world.agents if a != agent])
+
+        # # central
+        # if agent == world.agents[0]:
+        #     for l in world.landmarks:
+        #         dists = [np.sqrt(np.sum(np.square(a.state.p_pos - l.state.p_pos))) for a in world.agents]
+        #         rew -= min(dists)
+
+        #     for agent in world.agents:
+        #         rew -= sum([self.is_collision(a, agent) for a in world.agents if a != agent])
 
         return rew
 
@@ -120,7 +120,7 @@ class Scenario(BaseScenario):
             comm.append(other.state.c)
             other_pos.append(other.state.p_pos - agent.state.p_pos)
             other_vel.append(other.state.p_vel)
-        ob = np.concatenate([np.array([world.t/100])] + [agent.state.p_vel] + [agent.state.p_pos] + entity_pos + other_pos)
+        ob = np.concatenate([agent.state.p_vel] + [agent.state.p_pos] + entity_pos + other_pos)
         # # cetral
         # ob = np.concatenate([agent.state.p_vel] + [agent.state.p_pos] + entity_pos + other_pos + other_vel)
 
