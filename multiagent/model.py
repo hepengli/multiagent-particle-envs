@@ -104,21 +104,21 @@ class Model(object):
                     self.policies[i].pi.ob_rms.update(obs[i])
                     self.policies[i].oldpi.ob_rms.update(obs[i])
         elif self.mode == 'central':
-            if self.ob_normalization:
-                self.policies[self.leader].pi.ob_rms.update(obs[self.leader])
-                self.policies[self.leader].oldpi.ob_rms.update(obs[self.leader])
             norm_advs = (advs[self.leader] - np.mean(advs[self.leader])) / np.std(advs[self.leader])
             argvs = (obs[self.leader], actions[self.leader], norm_advs, returns[self.leader], values[self.leader])
             self.policies[self.leader].assign_old_eq_new()
-            self.policies[self.leader].vfupdate(obs[self.leader], returns[self.leader], values[self.leader])
             self.policies[self.leader].trpo_update(*argvs)
+            self.policies[self.leader].vfupdate(obs[self.leader], returns[self.leader], values[self.leader])
+            if self.ob_normalization:
+                self.policies[self.leader].pi.ob_rms.update(obs[self.leader])
+                self.policies[self.leader].oldpi.ob_rms.update(obs[self.leader])
         else:
             norm_advs = copy.deepcopy(advs)
             for i in range(len(self.world.agents)):
+                norm_advs[i] = (advs[i]-np.mean(advs[i]))/np.std(advs[i])
+                self.policies[i].assign_old_eq_new()
+                self.policies[i].trpo_update(obs[i], actions[i], norm_advs[i], returns[i], values[i])
+                self.policies[i].vfupdate(obs[i], returns[i], values[i])
                 if self.ob_normalization:
                     self.policies[i].pi.ob_rms.update(obs[i])
                     self.policies[i].oldpi.ob_rms.update(obs[i])
-                norm_advs[i] = (advs[i]-np.mean(advs[i]))/np.std(advs[i])
-                self.policies[i].assign_old_eq_new()
-                self.policies[i].vfupdate(obs[i], returns[i], values[i])
-                self.policies[i].trpo_update(obs[i], actions[i], norm_advs[i], returns[i], values[i])
