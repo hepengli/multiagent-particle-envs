@@ -79,17 +79,10 @@ class Model(object):
 
         # Policy Update
         if self.mode == 'matrpo':
-            norm_advs = copy.deepcopy(advs)
-            for i in range(len(self.world.agents)):
-                if self.ob_normalization:
-                    self.policies[i].pi.ob_rms.update(obs[i])
-                    self.policies[i].oldpi.ob_rms.update(obs[i])
-                self.policies[i].reinitial_estimates()
-                self.policies[i].assign_old_eq_new()
-                self.policies[i].vfupdate(obs[i], returns[i], values[i])
-                norm_advs[i] = (advs[i]-np.mean(advs))/np.std(advs)
-
+            # prepare data
+            norm_advs = [(adv-np.mean(advs))/np.std(advs) for adv in advs]
             argvs = tuple(zip(obs, actions, norm_advs, returns, values))
+            # consensus using admm
             for itr in range(self.admm_iter):
                 # edge = edges[np.random.choice(range(len(adv_edges)))]
                 edge = edges[itr % len(edges)]
@@ -102,6 +95,14 @@ class Model(object):
                 ratio_j, multipliers_j = self.policies[j].info_to_exchange(obs[j], actions[j], k)
                 self.policies[k].exchange(obs[k], actions[k], edge[k], ratio_j, multipliers_j, j)
                 self.policies[j].exchange(obs[j], actions[j], edge[j], ratio_k, multipliers_k, k)
+            # update
+            for i in range(len(self.world.agents)):
+                self.policies[i].assign_old_eq_new()
+                self.policies[i].reinitial_estimates()
+                self.policies[i].vfupdate(obs[i], returns[i], values[i])
+                if self.ob_normalization:
+                    self.policies[i].pi.ob_rms.update(obs[i])
+                    self.policies[i].oldpi.ob_rms.update(obs[i])
         elif self.mode == 'central':
             if self.ob_normalization:
                 self.policies[self.leader].pi.ob_rms.update(obs[self.leader])

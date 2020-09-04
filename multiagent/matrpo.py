@@ -46,7 +46,7 @@ class MATRPO(object):
     def __init__(self, env_id, nsteps, network, num_env, admm_iter, mode='matrpo', gamma=0.995, lam=0.95, max_kl=0.001, 
                  ent_coef=0.0, vf_stepsize=3e-4, vf_iters=3, cg_damping=1e-2, cg_iters=10, lbfgs_iters=10, rho=1.0, 
                  reward_scale=1.0, finite=True, seed=None, load_path=None, logger_dir=None, force_dummy=False, 
-                 ob_normalization=False, ob_clip_range=np.inf, info_keywords=(), **network_kwargs):
+                 ob_normalization=False, info_keywords=(), **network_kwargs):
         # Setup stuff
         set_global_seeds(seed)
         np.set_printoptions(precision=5)
@@ -62,7 +62,7 @@ class MATRPO(object):
 
         # create interactive policies for each agent
         self.policies = policies = Policy(env, world, network, nbatch, mode, rho, max_kl, ent_coef, vf_stepsize, vf_iters,
-                                          cg_damping, cg_iters, lbfgs_iters, ob_clip_range, load_path,  **network_kwargs)
+                                          cg_damping, cg_iters, lbfgs_iters, load_path,  **network_kwargs)
 
         # model
         self.model = model = Model(env, world, policies, admm_iter, mode, ob_normalization)
