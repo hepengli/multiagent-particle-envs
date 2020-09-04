@@ -19,7 +19,7 @@ MPI = None
 
 class AgentModel(tf.Module):
     def __init__(self, agent, network, nbatch, rho, max_kl, ent_coef, vf_stepsize, vf_iters,
-                 cg_damping, cg_iters, lbfgs_iters, ob_clip_range, load_path, **network_kwargs):
+                 cg_damping, cg_iters, lbfgs_iters, load_path, **network_kwargs):
         super(AgentModel, self).__init__(name='MATRPOModel')
         self.agent = agent
         self.comms = agent.comms
@@ -52,11 +52,11 @@ class AgentModel(tf.Module):
             with tf.name_scope("pi"):
                 pi_policy_network = network(ob_space.shape)
                 pi_value_network = network(ob_space.shape)
-                self.pi = pi = PolicyWithValue(ob_space, ob_clip_range, ac_space, pi_policy_network, pi_value_network)
+                self.pi = pi = PolicyWithValue(ob_space, ac_space, pi_policy_network, pi_value_network)
             with tf.name_scope("oldpi"):
                 old_pi_policy_network = network(ob_space.shape)
                 old_pi_value_network = network(ob_space.shape)
-                self.oldpi = oldpi = PolicyWithValue(ob_space, ob_clip_range, ac_space, old_pi_policy_network, old_pi_value_network)
+                self.oldpi = oldpi = PolicyWithValue(ob_space, ac_space, old_pi_policy_network, old_pi_value_network)
 
         self.comm_matrix = agent.comm_matrix.copy()
         self.estimates = np.zeros([agent.nmates, nbatch], dtype=np.float32)

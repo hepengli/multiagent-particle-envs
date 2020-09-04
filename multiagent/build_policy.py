@@ -4,7 +4,7 @@ from multiagent.agent_model import AgentModel
 from gym import spaces
 
 def Policy(env, world, network, nbatch, mode, rho, max_kl, ent_coef, vf_stepsize, vf_iters,
-           cg_damping, cg_iters, lbfgs_iters, ob_clip_range, load_path, **network_kwargs):
+           cg_damping, cg_iters, lbfgs_iters, load_path, **network_kwargs):
     policies = []
     for index, agent in enumerate(world.agents):
         agent = world.agents[index]
@@ -20,7 +20,7 @@ def Policy(env, world, network, nbatch, mode, rho, max_kl, ent_coef, vf_stepsize
         else:
             agent = cooperative_action_space(agent, env, world)
         model = AgentModel(agent, network, nbatch, rho, max_kl, ent_coef, vf_stepsize, vf_iters,
-                           cg_damping, cg_iters, lbfgs_iters, ob_clip_range, load_path, **network_kwargs)
+                           cg_damping, cg_iters, lbfgs_iters, load_path, **network_kwargs)
         policies.append(model)
     
     return policies

@@ -10,7 +10,7 @@ class PolicyWithValue(tf.keras.Model):
     Encapsulates fields and methods for RL policy and value function estimation with shared parameters
     """
 
-    def __init__(self, ob_space, ob_clip_range, ac_space, policy_network, value_network=None, estimate_q=False):
+    def __init__(self, ob_space, ac_space, policy_network, value_network=None, estimate_q=False):
         """
         Parameters:
         ----------
@@ -29,8 +29,7 @@ class PolicyWithValue(tf.keras.Model):
         self.value_network = value_network or policy_network
         self.estimate_q = estimate_q
         self.initial_state = None
-        self.ob_rms = RunningMeanStd(shape=ob_space.shape, default_clip_range=ob_clip_range)
-        self.vf_rms = RunningMeanStd(shape=(1,))
+        self.ob_rms = RunningMeanStd(shape=ob_space.shape, default_clip_range=5.0)
 
         # Based on the action space, will select what probability distribution type
         self.pdtype = make_pdtype(policy_network.output_shape, ac_space, init_scale=0.01)
