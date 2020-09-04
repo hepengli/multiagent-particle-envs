@@ -84,10 +84,10 @@ class Scenario(BaseScenario):
         # Agents are rewarded based on minimum agent distance to each landmark, penalized for collisions
         rew = 0
         # independent
-        # if agent == world.agents[0]:
-        for l in world.landmarks:
-            dists = [np.sqrt(np.sum(np.square(a.state.p_pos - l.state.p_pos))) for a in world.agents]
-            rew -= min(dists)
+        if agent == world.agents[0]:
+            for l in world.landmarks:
+                dists = [np.sqrt(np.sum(np.square(a.state.p_pos - l.state.p_pos))) for a in world.agents]
+                rew -= min(dists)
 
         rew -= sum([self.is_collision(a, agent) for a in world.agents if a != agent])
 
