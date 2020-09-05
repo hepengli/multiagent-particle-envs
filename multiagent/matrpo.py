@@ -62,7 +62,7 @@ class MATRPO(object):
 
         # create interactive policies for each agent
         self.policies = policies = Policy(env, world, network, nbatch, mode, rho, max_kl, ent_coef, vf_stepsize, vf_iters,
-                                          cg_damping, cg_iters, lbfgs_iters, load_path,  **network_kwargs)
+                                          cg_damping, cg_iters, lbfgs_iters, load_path, **network_kwargs)
 
         # model
         self.model = model = Model(env, world, policies, admm_iter, mode, ob_normalization)

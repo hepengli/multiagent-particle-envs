@@ -128,7 +128,7 @@ class AgentModel(tf.Module):
         return out
 
     @tf.function
-    def compute_losses(self, ob, ac, atarg, comms, estimates, multipliers):
+    def compute_losses(self, ob, ac, atarg, estimates, multipliers):
         old_policy_latent = self.oldpi.policy_network(ob)
         old_pd, _ = self.oldpi.pdtype.pdfromlatent(old_policy_latent)
         policy_latent = self.pi.policy_network(ob)
@@ -141,7 +141,7 @@ class AgentModel(tf.Module):
         ratio = tf.exp(pd.logp(ac) - old_pd.logp(ac))
         surrgain = tf.reduce_mean(ratio * atarg)
         logratio = pd.logp(ac) - old_pd.logp(ac)
-        syncerr = tf.multiply(comms[:,None], tf.tile(logratio[None,:], [comms.shape[0],1])) - estimates
+        syncerr = tf.concat([[c*logratio] for c in self.comms], axis=0) - estimates
         syncloss = tf.reduce_mean(tf.reduce_sum(multipliers * syncerr, axis=0) + \
                                   0.5 * self.rho * tf.reduce_sum(tf.square(syncerr), axis=0), 
                                   axis=-1)
@@ -203,16 +203,14 @@ class AgentModel(tf.Module):
         return jjvp
 
     @tf.function
-    def compute_vjp(self, ob, ac, atarg, comms, estimates, multipliers):
+    def compute_vjp(self, ob, ac, atarg, flat_tangents):
         with tf.GradientTape() as tape:
             old_policy_latent = self.oldpi.policy_network(ob)
             old_pd, _ = self.oldpi.pdtype.pdfromlatent(old_policy_latent)
             policy_latent = self.pi.policy_network(ob)
             pd, _ = self.pi.pdtype.pdfromlatent(policy_latent)
             ent = - tf.exp(old_pd.logp(ac)) * (old_pd.logp(ac) + 1.)
-            v = atarg + tf.tensordot(comms, multipliers, axes=[0,0]) + \
-                self.rho * tf.tensordot(comms, estimates, axes=[0,0])
-            flat_tangents = v + self.ent_coef * ent
+            flat_tangents += self.ent_coef * ent
             logratio = pd.logp(ac) - old_pd.logp(ac)
             vpr = tf.reduce_mean(flat_tangents * logratio)
         vjp = tape.jacobian(vpr, self.pi_var_list)
@@ -329,7 +327,7 @@ class AgentModel(tf.Module):
     def update(self, obs, actions, atarg, returns, vpredbefore):
         # Prepare data
         args = (obs, actions, atarg)
-        synargs = (self.comms, self.estimates[self.neighbors], self.multipliers[self.neighbors])
+        synargs = (self.estimates[self.neighbors], self.multipliers[self.neighbors])
         fvpargs = [arr[::5] for arr in args]
 
         self.assign_new_eq_old()
@@ -340,7 +338,9 @@ class AgentModel(tf.Module):
             return fvp + self.cg_damping * p
 
         with self.timed("computegrad"):
-            g = self.allmean(self.compute_vjp(*args, *synargs).numpy())
+            v = atarg - self.comms.dot(self.multipliers[self.neighbors]) \
+                + self.rho * self.comms.dot(self.estimates[self.neighbors])
+            g = self.allmean(self.compute_vjp(*args, v).numpy())
         lossesbefore = self.allmean(np.array(self.compute_losses(*args, *synargs)))
 
         if np.allclose(g, 0):

@@ -25,28 +25,19 @@ class PolicyWithValue(tf.keras.Model):
         """
         super(PolicyWithValue, self).__init__()
 
-        self.policy_network_fn = policy_network
-        self.value_network_fn = value_network or policy_network
+        self.policy_network = policy_network
+        self.value_network = value_network or policy_network
         self.estimate_q = estimate_q
         self.initial_state = None
-        self.ob_rms = RunningMeanStd(shape=ob_space.shape, default_clip_range=5.0)
 
         # Based on the action space, will select what probability distribution type
         self.pdtype = make_pdtype(policy_network.output_shape, ac_space, init_scale=0.01)
 
         if estimate_q:
             assert isinstance(ac_space, gym.spaces.Discrete)
-            self.value_fc = fc(self.value_network_fn.output_shape, 'q', ac_space.n)
+            self.value_fc = fc(self.value_network.output_shape, 'q', ac_space.n)
         else:
-            self.value_fc = fc(self.value_network_fn.output_shape, 'vf', 1)
-
-    @tf.function
-    def policy_network(self, observation):
-        return self.policy_network_fn(self.ob_rms.normalize(observation))
-
-    @tf.function
-    def value_network(self, observation):
-        return self.value_network_fn(self.ob_rms.normalize(observation))
+            self.value_fc = fc(self.value_network.output_shape, 'vf', 1)
 
     @tf.function
     def step(self, observation):
