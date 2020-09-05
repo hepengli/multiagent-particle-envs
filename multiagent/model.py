@@ -80,12 +80,16 @@ class Model(object):
         # Policy Update
         if self.mode == 'matrpo':
             for i in range(len(self.world.agents)):
+                if self.ob_normalization:
+                    self.policies[i].pi.ob_rms.update(obs[i])
+                    self.policies[i].oldpi.ob_rms.update(obs[i])
                 self.policies[i].reinitial_estimates()
                 self.policies[i].assign_old_eq_new()
                 self.policies[i].vfupdate(obs[i], returns[i], values[i])
-
+            # prepare data
             norm_advs = [(adv-np.mean(advs))/np.std(advs) for adv in advs]
             argvs = tuple(zip(obs, actions, norm_advs, returns, values))
+            # consensus using admm
             for itr in range(self.admm_iter):
                 # edge = edges[np.random.choice(range(len(adv_edges)))]
                 edge = edges[itr % len(edges)]
@@ -99,6 +103,9 @@ class Model(object):
                 self.policies[k].exchange(obs[k], actions[k], edge[k], ratio_j, multipliers_j, j)
                 self.policies[j].exchange(obs[j], actions[j], edge[j], ratio_k, multipliers_k, k)
         elif self.mode == 'central':
+            if self.ob_normalization:
+                self.policies[self.leader].pi.ob_rms.update(obs[self.leader])
+                self.policies[self.leader].oldpi.ob_rms.update(obs[self.leader])
             norm_advs = (advs[self.leader] - np.mean(advs[self.leader])) / np.std(advs[self.leader])
             argvs = (obs[self.leader], actions[self.leader], norm_advs, returns[self.leader], values[self.leader])
             self.policies[self.leader].assign_old_eq_new()
@@ -107,6 +114,9 @@ class Model(object):
         else:
             norm_advs = copy.deepcopy(advs)
             for i in range(len(self.world.agents)):
+                if self.ob_normalization:
+                    self.policies[i].pi.ob_rms.update(obs[i])
+                    self.policies[i].oldpi.ob_rms.update(obs[i])
                 norm_advs[i] = (advs[i]-np.mean(advs[i]))/np.std(advs[i])
                 self.policies[i].assign_old_eq_new()
                 self.policies[i].vfupdate(obs[i], returns[i], values[i])

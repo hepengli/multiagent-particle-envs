@@ -83,8 +83,7 @@ class Scenario(BaseScenario):
     def reward(self, agent, world):
         rew = 0
         if agent == world.agents[0]:
-            for a in world.agents:
-                rew += self.proximity_reward(a, world)
+            rew += self.proximity_reward(agent, world)
 
         rew += self.collision_penalty(agent, world)
 

@@ -20,6 +20,7 @@ agents = MATRPO(
     network='mlp',
     finite=False,
     admm_iter=100,
+    ob_normalization=True,
     load_path=load_path,
     logger_dir=reward_path,
     info_keywords=tuple('r{}'.format(i) for i in range(3)),
