@@ -216,7 +216,8 @@ class AgentModel(tf.Module):
             v = tf.tile(atarg[None,:], [self.agent.action_size, 1]) - \
                 tf.reduce_sum(tf.multiply(comms, multipliers), axis=0) + \
                 self.rho * tf.reduce_sum(tf.multiply(comms, estimates), axis=0)
-            vpr = tf.reduce_mean(tf.multiply(v, logratio) + self.ent_coef * ent)
+            vpr = tf.reduce_mean(tf.reduce_sum(tf.multiply(v, logratio), axis=0))
+            vpr += tf.reduce_mean(self.ent_coef * ent)
         vjp = tape.jacobian(vpr, self.pi_var_list)
 
         return U.flatgrad(vjp, self.pi_var_list)
