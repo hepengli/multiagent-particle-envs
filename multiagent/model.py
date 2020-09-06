@@ -76,7 +76,6 @@ class Model(object):
     def train(self, actions, obs, returns, dones, values, advs, neglogpacs):
         A = self.world.comm_matrix
         edges = A[np.unique(np.nonzero(A)[0])]
-
         # Policy Update
         if self.mode == 'matrpo':
             for i in range(len(self.world.agents)):

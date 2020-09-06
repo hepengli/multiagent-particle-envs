@@ -29,7 +29,7 @@ class PolicyWithValue(tf.keras.Model):
         self.value_network_fn = value_network or policy_network
         self.estimate_q = estimate_q
         self.initial_state = None
-        self.ob_rms = RunningMeanStd(shape=ob_space.shape, default_clip_range=5.0)
+        self.ob_rms = RunningMeanStd(shape=ob_space.shape)
 
         # Based on the action space, will select what probability distribution type
         self.pdtype = make_pdtype(policy_network.output_shape, ac_space, init_scale=0.01)
