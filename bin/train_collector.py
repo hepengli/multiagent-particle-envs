@@ -7,7 +7,7 @@ from multiagent.matrpo import MATRPO
 from multiagent.plot import plot
 
 def main(seed):
-    mode = 'central'
+    mode = 'matrpo'
     env_id = 'collector'
     reward_path = '/home/lihepeng/Documents/Github/results/training/{}/{}/s{}'.format(env_id, mode, seed)
     load_path = '/home/lihepeng/Documents/Github/results/graphs/{}/{}/s{}'.format(env_id, mode, seed)
