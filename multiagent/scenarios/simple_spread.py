@@ -83,9 +83,9 @@ class Scenario(BaseScenario):
     def reward(self, agent, world):
         rew = 0
         if agent == world.agents[0]:
-            rew += self.proximity_reward(agent, world)
-
-        rew += self.collision_penalty(agent, world)
+            for a in world.agents:
+                rew += self.proximity_reward(a, world)
+                rew += self.collision_penalty(a, world)
 
         return rew
 
@@ -125,9 +125,9 @@ class Scenario(BaseScenario):
             comm.append(other.state.c)
             other_pos.append(other.state.p_pos - agent.state.p_pos)
             other_vel.append(other.state.p_vel)
-        ob = np.concatenate([agent.state.p_vel] + [agent.state.p_pos] + entity_pos + other_pos)
-        # # cetral
-        # ob = np.concatenate([agent.state.p_vel] + [agent.state.p_pos] + entity_pos + other_pos + other_vel)
+        # ob = np.concatenate([agent.state.p_vel] + [agent.state.p_pos] + entity_pos + other_pos)
+        # cetral
+        ob = np.concatenate([agent.state.p_vel] + [agent.state.p_pos] + entity_pos + other_pos + other_vel)
 
 
         return ob.astype(np.float32)

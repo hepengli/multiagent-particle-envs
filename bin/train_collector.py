@@ -17,7 +17,7 @@ def main(seed):
         seed=seed,
         num_env=10,
         nsteps=1000,
-        admm_iter=200,
+        admm_iter=500,
         network='mlp',
         max_kl=0.001,
         load_path=load_path,
