@@ -211,13 +211,14 @@ class AgentModel(tf.Module):
             policy_latent = self.pi.policy_network(ob)
             pd, _ = self.pi.pdtype.pdfromlatent(policy_latent)
             ent = - tf.exp(old_pd.logp(ac)) * (old_pd.logp(ac) + 1.)
+            entbonus = self.ent_coef * tf.reduce_mean(ent)
             logratio = tf.concat([[pd.logp_n(ac,n)-old_pd.logp_n(ac,n)] for n in 
                                   range(self.agent.action_size)], axis=0)
             v = tf.tile(atarg[None,:], [self.agent.action_size, 1]) - \
                 tf.reduce_sum(tf.multiply(comms, multipliers), axis=0) + \
                 self.rho * tf.reduce_sum(tf.multiply(comms, estimates), axis=0)
             vpr = tf.reduce_mean(tf.reduce_sum(tf.multiply(v, logratio), axis=0))
-            vpr += tf.reduce_mean(self.ent_coef * ent)
+            vpr += entbonus
         vjp = tape.jacobian(vpr, self.pi_var_list)
 
         return U.flatgrad(vjp, self.pi_var_list)
