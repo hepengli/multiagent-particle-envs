@@ -213,7 +213,7 @@ class AgentModel(tf.Module):
             logratio = pd.logp(ac) - old_pd.logp(ac)
             v = atarg - tf.reduce_sum(tf.multiply(comms, multipliers), axis=0) + \
                 self.rho * tf.reduce_sum(tf.multiply(comms, estimates), axis=0)
-            vpr = tf.reduce_mean(tf.multiply(v, logratio)) + entbonus
+            vpr = tf.reduce_mean(v * logratio) + entbonus
         vjp = tape.jacobian(vpr, self.pi_var_list)
 
         return U.flatgrad(vjp, self.pi_var_list)
@@ -319,7 +319,6 @@ class AgentModel(tf.Module):
         pd, _ = self.pi.pdtype.pdfromlatent(policy_latent)
         logratio = (pd.logp(ac) - old_pd.logp(ac)).numpy()
         multiplier = self.multipliers[nb].copy()
-
         v = 0.5 * (multiplier + nb_multipliers) + \
             0.5 * self.rho * (comm * logratio + (-comm) * nb_logratio)
         self.estimates[nb] = (multiplier - v) / self.rho + comm * logratio
@@ -371,8 +370,8 @@ class AgentModel(tf.Module):
                     logger.log("Got non-finite value of losses -- bad!")
                 elif kl > self.max_kl * 1.5:
                     logger.log("violated KL constraint. shrinking step.")
-                # elif improve < 0:
-                #     logger.log("lagrange didn't improve. shrinking step.")
+                elif improve < 0:
+                    logger.log("lagrange didn't improve. shrinking step.")
                 else:
                     logger.log("Stepsize OK!")
                     break
