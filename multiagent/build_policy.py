@@ -10,7 +10,7 @@ def Policy(env, world, network, nbatch, mode, rho, max_kl, ent_coef, vf_stepsize
         agent = world.agents[index]
         agent.id = index
         agent.comm_matrix = world.comm_matrix[world.comm_matrix[:,index]!=0]
-        agent.comms = agent.comm_matrix[:,index][:,None]
+        agent.comms = agent.comm_matrix[:,index][:,None][:,None]
         agent.neighbors = [id for id in np.where(agent.comm_matrix!=0)[1] if id != index]
         agent.observation_space = env.observation_space[index]
         if mode == 'matrpo':
