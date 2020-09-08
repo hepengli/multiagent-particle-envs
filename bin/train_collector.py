@@ -17,11 +17,11 @@ def main(seed):
         seed=seed,
         num_env=10,
         nsteps=1000,
-        admm_iter=300,
+        admm_iter=100,
         network='mlp',
         load_path=load_path,
         logger_dir=reward_path,
-        info_keywords=tuple('r{}'.format(i) for i in range(8)),
+        info_keywords=tuple('r{}'.format(i) for i in range(12)),
         mode=mode,
         **network_kwargs)
 
@@ -36,6 +36,6 @@ def main(seed):
             agents.model.save()
         
 if __name__ == '__main__':
-    for i in range(2,6):
+    for i in range(1,6):
         main(i)
 

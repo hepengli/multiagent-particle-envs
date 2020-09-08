@@ -32,7 +32,7 @@ class PolicyWithValue(tf.keras.Model):
         self.ob_rms = RunningMeanStd(shape=ob_space.shape)
 
         # Based on the action space, will select what probability distribution type
-        self.pdtype = make_pdtype(policy_network.output_shape, ac_space, init_scale=0.01)
+        self.pdtype = make_pdtype(policy_network.output_shape, ac_space, init_scale=0.001)
 
         if estimate_q:
             assert isinstance(ac_space, gym.spaces.Discrete)
