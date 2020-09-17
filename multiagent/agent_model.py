@@ -94,7 +94,7 @@ class AgentModel(tf.Module):
 
     def reinitial_estimates(self):
         self.estimates = np.zeros([self.agent.nmates, self.agent.action_size, self.nbatch], dtype=np.float32)
-        self.multipliers = np.zeros([self.agent.nmates, self.agent.action_size, self.nbatch], dtype=np.float32)
+        self.multipliers = np.ones([self.agent.nmates, self.agent.action_size, self.nbatch], dtype=np.float32)
 
     def assign_old_eq_new(self):
         for pi_var, old_pi_var in zip(self.pi_var_list, self.old_pi_var_list):
@@ -142,10 +142,10 @@ class AgentModel(tf.Module):
         surrgain = tf.reduce_mean(ratio * atarg)
         logratio = pd.logp_n(ac) - old_pd.logp_n(ac)
         syncerr = tf.multiply(comms, tf.tile(logratio[None,:], comms.shape)) - estimates
-        syncloss = tf.reduce_mean(tf.reduce_sum(multipliers * syncerr, axis=0) + \
-                                  0.5 * self.rho * tf.reduce_sum(tf.square(syncerr), axis=0))
+        syncloss = tf.reduce_mean(tf.reduce_sum(multipliers * syncerr, axis=[0,1]) + \
+                                  0.5 * self.rho * tf.reduce_sum(tf.square(syncerr), axis=[0,1]))
         lagrangeloss = - surrgain - entbonus + syncloss
-        mean_syncerr = tf.reduce_mean(tf.reduce_sum(tf.square(syncerr), axis=0))
+        mean_syncerr = tf.reduce_mean(tf.reduce_sum(tf.square(syncerr), axis=[0,1]), axis=-1)
         losses = [lagrangeloss, surrgain, mean_syncerr, meankl, entbonus]
         return losses
 
@@ -203,6 +203,7 @@ class AgentModel(tf.Module):
 
     @tf.function
     def compute_vjp(self, ob, ac, atarg, comms, estimates, multipliers):
+        atargs = tf.tile(tf.expand_dims(atarg, 0), [self.agent.action_size, 1])
         with tf.GradientTape() as tape:
             old_policy_latent = self.oldpi.policy_network(ob)
             old_pd, _ = self.oldpi.pdtype.pdfromlatent(old_policy_latent)
@@ -210,12 +211,10 @@ class AgentModel(tf.Module):
             pd, _ = self.pi.pdtype.pdfromlatent(policy_latent)
             ent = - tf.exp(old_pd.logp(ac)) * (old_pd.logp(ac) + 1.)
             ent_bonus = self.ent_coef * tf.reduce_mean(ent)
-            ratio = tf.exp(pd.logp(ac) - old_pd.logp(ac))
             logratio = pd.logp_n(ac) - old_pd.logp_n(ac)
-            v = - tf.reduce_sum(comms * multipliers, axis=0) + \
+            v = atargs - tf.reduce_sum(comms * multipliers, axis=0) + \
                 self.rho * tf.reduce_sum(comms * estimates, axis=0)
-            vpr = tf.reduce_mean(atarg * ratio) + tf.reduce_mean(v * logratio)
-            vpr += ent_bonus
+            vpr = tf.reduce_mean(tf.reduce_sum(v * logratio, axis=0)) + ent_bonus
         vjp = tape.jacobian(vpr, self.pi_var_list)
 
         return U.flatgrad(vjp, self.pi_var_list)
