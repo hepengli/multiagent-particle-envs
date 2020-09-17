@@ -21,7 +21,7 @@ xdata = np.arange(500)
 models = ['central','matrpo','trpo']
 results = []
 for model in models:
-    results.append(get_training_curve('collector', model, num_agents=8))
+    results.append(get_training_curve('simple_spread', model, num_agents=3))
 
 fig = plt.figure()
 sns.tsplot(time=xdata, data=results[0], color='r', linestyle='-', legend=True)

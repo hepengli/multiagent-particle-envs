@@ -11,7 +11,7 @@ class Scenario(BaseScenario):
         world.cache_dists = True
         world.dim_c = 2
         num_agents = 12
-        num_collectors = 9
+        num_collectors = 10
         num_deposits = num_agents - num_collectors
         world.treasure_types = list(range(num_deposits))
         world.treasure_colors = np.array(

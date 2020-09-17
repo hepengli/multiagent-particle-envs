@@ -45,7 +45,7 @@ class MATRPO(object):
     """ Paralell CPO algorithm """
     def __init__(self, env_id, nsteps, network, num_env, admm_iter, seed=None, mode='matrpo', 
                  gamma=0.995, lam=0.95, max_kl=0.001, ent_coef=0.0, vf_stepsize=3e-4, vf_iters=3, 
-                 cg_damping=1e-2, cg_iters=10, lbfgs_iters=10, rho=10.0, reward_scale=1.0, 
+                 cg_damping=1e-2, cg_iters=10, lbfgs_iters=10, rho=1.0, reward_scale=1.0, 
                  finite=True, load_path=None, logger_dir=None, force_dummy=False, 
                  ob_normalization=False, info_keywords=(), **network_kwargs):
         # Setup stuff
