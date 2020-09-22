@@ -3,14 +3,10 @@ from baselines import logger
 import baselines.common.tf_util as U
 import tensorflow as tf, numpy as np
 import time, os
-from collections import deque
-from baselines.common import set_global_seeds
 from baselines.common.models import get_network_builder
 from baselines.common.mpi_adam import MpiAdam
-from baselines.common.vec_env.vec_env import VecEnv
 from baselines.common import colorize
 from baselines.common.cg import cg
-from baselines.common.distributions import make_pdtype
 from multiagent.policies import PolicyWithValue
 from multiagent.lbfgs import lbfgs
 
@@ -23,7 +19,7 @@ class AgentModel(tf.Module):
         super(AgentModel, self).__init__(name='MATRPOModel')
         self.agent = agent
         self.comms = agent.comms
-        self.neighbors = agent.neighbors
+        self.nbs = agent.neighbors
         self.nbatch = nbatch
         self.rho = rho
         self.max_kl = max_kl
@@ -106,6 +102,9 @@ class AgentModel(tf.Module):
         for old_pi_var, pi_var in zip(self.old_pi_var_list, self.pi_var_list):
             pi_var.assign(old_pi_var)
 
+    def convert_to_tensor(self, args):
+        return [tf.convert_to_tensor(arg, dtype=arg.dtype) for arg in args]
+
     @contextmanager
     def timed(self, msg, verbose=False):
         if self.rank == 0:
@@ -159,7 +158,7 @@ class AgentModel(tf.Module):
         return U.flatgrad(tape.gradient(vferr, self.vf_var_list), self.vf_var_list)
 
     @tf.function
-    def compute_fvp(self, flat_tangents, ob, ac, atarg):
+    def compute_fvp(self, flat_tangents, ob, ac):
         tangents = self.reshape_from_flat(flat_tangents)
         with tf.autodiff.ForwardAccumulator(
             primals=self.pi_var_list,
@@ -332,9 +331,9 @@ class AgentModel(tf.Module):
 
     def update(self, obs, actions, atarg, returns, vpredbefore):
         # Prepare data
-        args = (obs, actions, atarg)
-        synargs = (self.comms, self.estimates[self.neighbors], self.multipliers[self.neighbors])
-        fvpargs = [arr[::5] for arr in args]
+        args = self.convert_to_tensor((obs, actions, atarg))
+        fvpargs = self.convert_to_tensor((obs[::5], actions[::5]))
+        synargs = self.convert_to_tensor((self.comms, self.estimates[self.nbs], self.multipliers[self.nbs]))
 
         self.assign_new_eq_old()
 

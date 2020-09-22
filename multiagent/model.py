@@ -74,6 +74,7 @@ class Model(object):
             print("Save checkpoint to {}".format(save_path))
 
     def train(self, actions, obs, returns, dones, values, advs, neglogpacs):
+        eps = 1e-8
         A = self.world.comm_matrix
         edges = A[np.unique(np.nonzero(A)[0])]
         # Policy Update
@@ -86,7 +87,7 @@ class Model(object):
                 self.policies[i].assign_old_eq_new()
                 self.policies[i].vfupdate(obs[i], returns[i], values[i])
             # prepare data
-            norm_advs = [(adv-np.mean(advs))/np.std(advs) for adv in advs]
+            norm_advs = [(adv-np.mean(advs))/(np.std(advs)+eps) for adv in advs]
             argvs = tuple(zip(obs, actions, norm_advs, returns, values))
             # consensus using admm
             for itr in range(self.admm_iter):
@@ -105,7 +106,7 @@ class Model(object):
             if self.ob_normalization:
                 self.policies[self.leader].pi.ob_rms.update(obs[self.leader])
                 self.policies[self.leader].oldpi.ob_rms.update(obs[self.leader])
-            norm_advs = (advs[self.leader] - np.mean(advs[self.leader])) / np.std(advs[self.leader])
+            norm_advs = (advs[self.leader] - np.mean(advs[self.leader])) / (np.std(advs[self.leader])+eps)
             argvs = (obs[self.leader], actions[self.leader], norm_advs, returns[self.leader], values[self.leader])
             self.policies[self.leader].assign_old_eq_new()
             self.policies[self.leader].vfupdate(obs[self.leader], returns[self.leader], values[self.leader])
@@ -116,7 +117,7 @@ class Model(object):
                 if self.ob_normalization:
                     self.policies[i].pi.ob_rms.update(obs[i])
                     self.policies[i].oldpi.ob_rms.update(obs[i])
-                norm_advs[i] = (advs[i]-np.mean(advs[i]))/np.std(advs[i])
+                norm_advs[i] = (advs[i]-np.mean(advs[i]))/(np.std(advs[i])+eps)
                 self.policies[i].assign_old_eq_new()
                 self.policies[i].vfupdate(obs[i], returns[i], values[i])
                 self.policies[i].trpo_update(obs[i], actions[i], norm_advs[i], returns[i], values[i])
