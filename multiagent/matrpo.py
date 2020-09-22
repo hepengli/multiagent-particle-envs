@@ -84,7 +84,7 @@ class MATRPO(object):
             'reward_callback': scenario.reward, 
             'observation_callback': scenario.observation,
             'post_step_callback': scenario.post_step,
-            'info_callback': None,
+            'info_callback': scenario.benchmark_data,
             'shared_viewer':  True
             }
         env = gym.make('MultiAgent-v0', **env_dict)
@@ -119,7 +119,6 @@ class MATRPO(object):
             return SubprocVecEnv([make_thunk(i) for i in range(num_env)])
         else:
             return make_thunk(0)()
-
 
     def play(self):
         self.model.test = True

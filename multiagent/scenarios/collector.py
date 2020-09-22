@@ -10,8 +10,8 @@ class Scenario(BaseScenario):
         # set any world properties first
         world.cache_dists = True
         world.dim_c = 2
-        num_agents = 12
-        num_collectors = 10
+        num_agents = 8
+        num_collectors = 6
         num_deposits = num_agents - num_collectors
         world.treasure_types = list(range(num_deposits))
         world.treasure_colors = np.array(
@@ -130,21 +130,29 @@ class Scenario(BaseScenario):
         world.calculate_distances()
 
     def benchmark_data(self, agent, world):
+        deposited_treasures = 0
+        collected_treasures = 0
+        collisions = 0
         # returns data for benchmarking purposes
         if agent.collector:
             if agent.holding is not None:
                 for d in self.deposits(world):
                     if d.d_i == agent.holding and self.is_collision(d, agent, world):
-                        return 1
+                        # deposited_treasures += 1
+                        pass
             else:
                 for t in self.treasures(world):
                     if self.is_collision(t, agent, world):
-                        return 1
+                        collected_treasures += 1
+            for a in self.collectors(world):
+                if a is not agent and self.is_collision(a, agent, world):
+                    collisions += 1
         else:  # deposit
             for a in self.collectors(world):
                 if a.holding == agent.d_i and self.is_collision(a, agent, world):
-                    return 1
-        return 0
+                    deposited_treasures += 1
+
+        return (collected_treasures, deposited_treasures, collisions)
 
     def is_collision(self, agent1, agent2, world):
         dist = world.cached_dist_mag[agent1.i, agent2.i]
@@ -156,13 +164,13 @@ class Scenario(BaseScenario):
 
     def reward(self, agent, world):
         self.calc_global_reward(world)
-        main_reward = (self.collector_reward(agent, world) if agent.collector
-                       else self.deposit_reward(agent, world))
+        # main_reward = (self.collector_reward(agent, world) if agent.collector
+        #                else self.deposit_reward(agent, world))
 
-        # main_reward = 0.0
-        # if agent == self.collectors(world)[0]:
-        #     main_reward += sum([self.deposit_reward(a, world) for a in self.deposits(world)])
-        #     main_reward += sum([self.collector_reward(a, world) for a in self.collectors(world)])
+        main_reward = 0.0
+        if agent == self.collectors(world)[0]:
+            main_reward += sum([self.deposit_reward(a, world) for a in self.deposits(world)])
+            main_reward += sum([self.collector_reward(a, world) for a in self.collectors(world)])
 
         return main_reward
 

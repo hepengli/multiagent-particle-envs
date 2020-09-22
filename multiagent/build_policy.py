@@ -69,6 +69,6 @@ def independent_action_space(agent, env, world):
         if other is agent:
             agent.action_index = i
             agent.action_space = env.action_space[i]
-            agent.nmates = 1
+            agent.nmates = agent.action_size = 1
 
     return agent
