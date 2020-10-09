@@ -30,8 +30,8 @@ agents = MATRPO(
 # training
 total_timesteps = 500
 for step in range(1, total_timesteps+1):
-    actions, obs, returns, dones, values, advs, neglogpacs = agents.runner.run()
-    agents.model.train(actions, obs, returns, dones, values, advs, neglogpacs)
+    actions, obs, rewards, returns, dones, values, advs, neglogpacs = agents.runner.run()
+    agents.model.train(actions, obs, rewards, returns, dones, values, advs, neglogpacs)
     df_train = load_results(reward_path)
     plot(df_train, agents, 100)
     if step % 10 == 0:

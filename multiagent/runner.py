@@ -85,7 +85,7 @@ class Runner(AbstractEnvRunner):
         mb_returns = mb_advs + mb_values
 
         return (self.model.share_actions(sf01(mb_actions)), sf03(sf(mb_obs)), 
-                *map(sf, (mb_returns, mb_dones, mb_values, mb_advs, mb_neglogpacs)))
+                *map(sf, (mb_rewards, mb_returns, mb_dones, mb_values, mb_advs, mb_neglogpacs)))
 
 
 def sf(arr):

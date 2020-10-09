@@ -1,6 +1,7 @@
 import numpy as np
 import tensorflow as tf
 from multiagent.agent_model import AgentModel
+from multiagent.agent_a2c_model import AgentA2CModel
 from gym import spaces
 
 def Policy(env, world, network, nbatch, mode, rho, max_kl, ent_coef, vf_stepsize, vf_iters,
@@ -15,10 +16,10 @@ def Policy(env, world, network, nbatch, mode, rho, max_kl, ent_coef, vf_stepsize
         agent.observation_space = env.observation_space[index]
         if mode == 'matrpo':
             agent = cooperative_action_space(agent, env, world)
+        elif mode == 'central':
+            agent = cooperative_action_space(agent, env, world)
         elif mode == 'trpo':
             agent = independent_action_space(agent, env, world)
-        else:
-            agent = cooperative_action_space(agent, env, world)
         model = AgentModel(agent, network, nbatch, rho, max_kl, ent_coef, vf_stepsize, vf_iters,
                            cg_damping, cg_iters, lbfgs_iters, load_path, **network_kwargs)
         policies.append(model)

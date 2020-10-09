@@ -16,7 +16,7 @@ MPI = None
 class AgentModel(tf.Module):
     def __init__(self, agent, network, nbatch, rho, max_kl, ent_coef, vf_stepsize, vf_iters,
                  cg_damping, cg_iters, lbfgs_iters, load_path, **network_kwargs):
-        super(AgentModel, self).__init__(name='MATRPOModel')
+        super(AgentModel, self).__init__(name='AgentModel')
         self.agent = agent
         self.comms = agent.comms
         self.nbs = agent.neighbors

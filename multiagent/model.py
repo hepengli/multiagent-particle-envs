@@ -73,7 +73,7 @@ class Model(object):
             save_path = pi.manager.save()
             print("Save checkpoint to {}".format(save_path))
 
-    def train(self, actions, obs, returns, dones, values, advs, neglogpacs):
+    def train(self, actions, obs, rewards, returns, dones, values, advs, neglogpacs):
         eps = 1e-8
         A = self.world.comm_matrix
         edges = A[np.unique(np.nonzero(A)[0])]
