@@ -71,17 +71,17 @@ class Runner(AbstractEnvRunner):
         # discount/bootstrap off value fn
         mb_returns = np.zeros_like(mb_rewards)
         mb_advs = np.zeros_like(mb_rewards)
-        for i in range(len(self.world.agents)):
-            lastgaelam = 0
-            for t in reversed(range(self.nsteps)):
-                if t == self.nsteps - 1:
-                    nextnonterminal = 1.0 - self.dones * self.finite
-                    nextvalues = last_values[:,i]
-                else:
-                    nextnonterminal = 1.0 - mb_dones[t+1] * self.finite
-                    nextvalues = mb_values[t+1,:,i]
-                delta = mb_rewards[t,:,i] + self.gamma * nextvalues * nextnonterminal - mb_values[t,:,i]
-                mb_advs[t,:,i] = lastgaelam = delta + self.gamma * self.lam * nextnonterminal * lastgaelam
+        lastgaelam = 0
+        for t in reversed(range(self.nsteps)):
+            if t == self.nsteps - 1:
+                nextnonterminal = 1.0 - self.dones * self.finite
+                nextvalues = last_values
+            else:
+                nextnonterminal = 1.0 - mb_dones[t+1] * self.finite
+                nextvalues = mb_values[t+1]
+            nextnonterminal = np.tile(nextnonterminal, (len(self.world.agents),1)).transpose()
+            delta = mb_rewards[t] + self.gamma * nextvalues * nextnonterminal - mb_values[t]
+            mb_advs[t] = lastgaelam = delta + self.gamma * self.lam * nextnonterminal * lastgaelam
         mb_returns = mb_advs + mb_values
 
         return (self.model.share_actions(sf01(mb_actions)), sf03(sf(mb_obs)), 

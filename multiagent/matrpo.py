@@ -77,6 +77,7 @@ class MATRPO(object):
         """
         scenario = scenarios.load('{}.py'.format(env_id)).Scenario()
         if not hasattr(scenario, 'post_step'): scenario.post_step = None
+        if not hasattr(scenario, 'discrete_action'): scenario.discrete_action = True
         world = scenario.make_world()
         env_dict = {
             "world": world,
@@ -85,7 +86,8 @@ class MATRPO(object):
             'observation_callback': scenario.observation,
             'post_step_callback': scenario.post_step,
             'info_callback': scenario.benchmark_data,
-            'shared_viewer':  True
+            'discrete_action': scenario.discrete_action,
+            'shared_viewer':  True,
             }
         env = gym.make('MultiAgent-v0', **env_dict)
         env.seed(seed + subrank if seed is not None else None)
@@ -139,6 +141,7 @@ class MATRPO(object):
                 # break
                 if done_n:
                     print('done!')
+                    time.sleep(2)
                     break
 
         self.model.test = False

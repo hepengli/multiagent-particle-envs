@@ -12,8 +12,6 @@ class Model(object):
         self.leader = 0 if mode == 'central' else None
         self.test = False
         self.ob_normalization = ob_normalization
-        for i in range(len(world.agents)):
-            policies[i].vfadam.sync()
 
     def step(self, obs):
         action_n, value_n, neglogp_n = [], [], []
@@ -24,7 +22,7 @@ class Model(object):
                     if len(action.shape) < 2: action = tf.expand_dims(action, axis=1)
                     action_n.append(tf.gather(action,i,axis=1).numpy())
                 elif self.mode=='trpo':
-                    action_n.append(action.numpy())
+                    action_n.append(action.numpy().squeeze().transpose())
                 elif self.mode == 'central':
                     if len(action.shape) < 2: action = tf.expand_dims(action, axis=1)
                     if i == self.leader: action_n += list(action.numpy().transpose())
@@ -43,7 +41,7 @@ class Model(object):
                     if len(action.shape) < 2: action = tf.expand_dims(action, axis=1)
                     action_n.append(action[0,i].numpy())
                 elif self.mode=='trpo':
-                    action_n.append(action.numpy())
+                    action_n.append(action.numpy().squeeze())
                 elif self.mode=='central':
                     if len(action.shape) < 2: action = tf.expand_dims(action, axis=1)
                     if i == self.leader: action_n += list(action[0].numpy())
