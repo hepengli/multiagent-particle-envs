@@ -20,6 +20,8 @@ class Scenario(BaseScenario):
             world.comm_matrix,
             np.array([[-1]+[0]*(num_agents-2)+[1]]),
         ]).astype(np.float32)
+        # shared reward
+        world.collaborative = True
         # add agents
         world.agents = [Agent() for i in range(num_agents)]
         for i, agent in enumerate(world.agents):
@@ -89,36 +91,35 @@ class Scenario(BaseScenario):
     def reward(self, agent, world):
         # Agents are rewarded based on minimum agent distance to each landmark
         rew = 0
-        for agent in world.agents:
-            dists = [np.sqrt(np.sum(np.square(a.state.p_pos - agent.state.p_pos))) for a in self.neighbors(agent, world)]
-            rew -= sum(dists) * 0.1
+        dists = [np.sqrt(np.sum(np.square(a.state.p_pos - agent.state.p_pos))) for a in self.neighbors(agent, world)]
+        rew -= sum(dists) * 0.1
 
-            def bound(x):
-                if x < 0.9:
-                    return 0
-                if x < 1.0:
-                    return (x - 0.9) * 10
-                return min(np.exp(2 * x - 2), 10)  # 1 + (x - 1) * (x - 1)
+        def bound(x):
+            if x < 0.9:
+                return 0
+            if x < 1.0:
+                return (x - 0.9) * 10
+            return min(np.exp(2 * x - 2), 10)  # 1 + (x - 1) * (x - 1)
 
-            for p in range(world.dim_p):
-                x = abs(agent.state.p_pos[p])
-                rew -= 2 * bound(x)
+        for p in range(world.dim_p):
+            x = abs(agent.state.p_pos[p])
+            rew -= 2 * bound(x)
 
         return rew
 
     def observation(self, agent, world):
         # communication of all other agents
         comm = []
-        other_pos = []
-        other_vel = []
+        # other_pos = []
+        # other_vel = []
         other_his_pos = []
         other_his_vel = []
         # for other in world.agents:
         for other in self.neighbors(agent, world):
             if other is agent: continue
             comm.append(other.state.c)
-            other_pos.append(other.state.p_pos - agent.state.p_pos)
-            other_vel.append(other.state.p_vel - agent.state.p_vel)
+            # other_pos.append(other.state.p_pos - agent.state.p_pos)
+            # other_vel.append(other.state.p_vel - agent.state.p_vel)
             other_his_pos.append(other.state.p_his_pos - agent.state.p_his_pos)
             other_his_vel.append(other.state.p_his_vel - agent.state.p_his_vel)
         # ob = np.concatenate(other_vel + other_pos)
