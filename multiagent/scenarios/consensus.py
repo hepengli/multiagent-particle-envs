@@ -106,44 +106,44 @@ class Scenario(BaseScenario):
 
         return rew
 
-    # def observation(self, agent, world):
-    #     # communication of all other agents
-    #     comm = []
-    #     other_pos = []
-    #     other_vel = []
-    #     other_his_pos = []
-    #     other_his_vel = []
-    #     # for other in world.agents:
-    #     for other in self.neighbors(agent, world):
-    #         if other is agent: continue
-    #         comm.append(other.state.c)
-    #         other_pos.append(other.state.p_pos - agent.state.p_pos)
-    #         other_vel.append(other.state.p_vel - agent.state.p_vel)
-    #         other_his_pos.append(other.state.p_his_pos - agent.state.p_his_pos)
-    #         other_his_vel.append(other.state.p_his_vel - agent.state.p_his_vel)
-    #     # ob = np.concatenate(other_vel + other_pos)
-    #     ob = np.concatenate(other_his_vel + other_his_pos).ravel()
-
-    #     return ob.astype(np.float32)
-
     def observation(self, agent, world):
         # communication of all other agents
         comm = []
-        his_len = 10
-        other_pos_diff = []
-        other_vel_diff = []
-        other_pos_diff_int = [] # integral
-        other_vel_diff_int = []
+        other_pos = []
+        other_vel = []
+        other_his_pos = []
+        other_his_vel = []
         # for other in world.agents:
         for other in self.neighbors(agent, world):
             if other is agent: continue
             comm.append(other.state.c)
-            other_pos_diff.append(other.state.p_his_pos[-his_len:] - agent.state.p_his_pos[-his_len:])
-            other_vel_diff.append(other.state.p_his_vel[-his_len:] - agent.state.p_his_vel[-his_len:])
-            other_pos_diff_int.append(np.sum(other.state.p_his_pos - agent.state.p_his_pos, axis=0))
-            other_vel_diff_int.append(np.sum(other.state.p_his_vel - agent.state.p_his_vel, axis=0))
-        ob = np.concatenate(other_pos_diff + other_vel_diff).ravel()
-        # ob_2 = np.concatenate(other_pos_diff_int + other_vel_diff_int)
-        # ob = np.concatenate([ob_1, ob_2]).ravel()
+            other_pos.append(other.state.p_pos - agent.state.p_pos)
+            other_vel.append(other.state.p_vel - agent.state.p_vel)
+            other_his_pos.append(other.state.p_his_pos - agent.state.p_his_pos)
+            other_his_vel.append(other.state.p_his_vel - agent.state.p_his_vel)
+        # ob = np.concatenate(other_vel + other_pos)
+        ob = np.concatenate(other_his_vel + other_his_pos).ravel()
 
         return ob.astype(np.float32)
+
+    # def observation(self, agent, world):
+    #     # communication of all other agents
+    #     comm = []
+    #     his_len = 10
+    #     other_pos_diff = []
+    #     other_vel_diff = []
+    #     other_pos_diff_int = [] # integral
+    #     other_vel_diff_int = []
+    #     # for other in world.agents:
+    #     for other in self.neighbors(agent, world):
+    #         if other is agent: continue
+    #         comm.append(other.state.c)
+    #         other_pos_diff.append(other.state.p_his_pos[-his_len:] - agent.state.p_his_pos[-his_len:])
+    #         other_vel_diff.append(other.state.p_his_vel[-his_len:] - agent.state.p_his_vel[-his_len:])
+    #         other_pos_diff_int.append(np.sum(other.state.p_his_pos - agent.state.p_his_pos, axis=0))
+    #         other_vel_diff_int.append(np.sum(other.state.p_his_vel - agent.state.p_his_vel, axis=0))
+    #     ob = np.concatenate(other_pos_diff + other_vel_diff).ravel()
+    #     # ob_2 = np.concatenate(other_pos_diff_int + other_vel_diff_int)
+    #     # ob = np.concatenate([ob_1, ob_2]).ravel()
+
+    #     return ob.astype(np.float32)

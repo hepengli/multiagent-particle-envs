@@ -250,10 +250,10 @@ class World(object):
                                                                   np.square(entity.state.p_vel[1])) * entity.max_speed
             entity.state.p_pos += entity.state.p_vel * self.dt
             if hasattr(entity.state, 'p_his_pos'):
-                # entity.state.p_his_pos = np.vstack([entity.state.p_his_pos[1:], entity.state.p_pos])
-                # entity.state.p_his_vel = np.vstack([entity.state.p_his_vel[1:], entity.state.p_vel])
-                entity.state.p_his_pos = np.append(entity.state.p_his_pos, [entity.state.p_pos], axis=0)
-                entity.state.p_his_vel = np.append(entity.state.p_his_vel, [entity.state.p_vel], axis=0)
+                entity.state.p_his_pos = np.vstack([entity.state.p_his_pos[1:], entity.state.p_pos])
+                entity.state.p_his_vel = np.vstack([entity.state.p_his_vel[1:], entity.state.p_vel])
+                # entity.state.p_his_pos = np.append(entity.state.p_his_pos, [entity.state.p_pos], axis=0)
+                # entity.state.p_his_vel = np.append(entity.state.p_his_vel, [entity.state.p_vel], axis=0)
 
     def update_agent_state(self, agent):
         # set communication state (directly for now)
