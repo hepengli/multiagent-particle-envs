@@ -9,7 +9,7 @@ class Scenario(BaseScenario):
         world = World()
         # set any world properties first
         world.dim_c = 2
-        num_agents = 5
+        num_agents = 6
         num_walls = 4
         # add comm network
         world.comm_matrix = toeplitz(
@@ -30,7 +30,7 @@ class Scenario(BaseScenario):
             agent.collide = False
             agent.silent = True
             agent.ghost = True
-            agent.size = 0.05
+            agent.size = 0.03
         # add walls
         world.walls = [Wall() for i in range(num_walls)]
         for i, landmark in enumerate(world.walls):
@@ -91,8 +91,13 @@ class Scenario(BaseScenario):
     def reward(self, agent, world):
         # Agents are rewarded based on minimum agent distance to each landmark
         rew = 0
-        dists = [np.sqrt(np.sum(np.square(a.state.p_pos - agent.state.p_pos))) for a in self.neighbors(agent, world)]
-        rew -= sum(dists) * 0.1
+        r = 0.8
+        dists = self.dist_to_neighbors(agent, world)
+        target_dist = r
+        rew -= np.abs(np.array(dists) - target_dist).sum() * 0.1
+
+        if agent == world.agents[0]:
+            rew -= np.abs(np.sqrt(np.sum(np.square(agent.state.p_pos))) - r) * 0.1
 
         def bound(x):
             if x < 0.9:
@@ -106,6 +111,13 @@ class Scenario(BaseScenario):
             rew -= 2 * bound(x)
 
         return rew
+
+    def dist_to_neighbors(self, agent, world):
+        dists = []
+        for a in self.neighbors(agent, world):
+            dists.append(np.sqrt(np.sum(np.square(a.state.p_pos - agent.state.p_pos))))
+        
+        return dists
 
     def observation(self, agent, world):
         # communication of all other agents

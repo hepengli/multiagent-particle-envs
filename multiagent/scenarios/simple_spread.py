@@ -126,8 +126,5 @@ class Scenario(BaseScenario):
             other_pos.append(other.state.p_pos - agent.state.p_pos)
             other_vel.append(other.state.p_vel)
         ob = np.concatenate([agent.state.p_vel] + [agent.state.p_pos] + entity_pos + other_pos)
-        # # cetral
-        # ob = np.concatenate([agent.state.p_vel] + [agent.state.p_pos] + entity_pos + other_pos + other_vel)
-
 
         return ob.astype(np.float32)
